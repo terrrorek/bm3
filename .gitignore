@@ -1,0 +1,17 @@
+objects/*
+.sconsign.dblite
+
+*.pdb
+*.exe
+*.so
+*.lib
+
+*.a
+*.dll
+!SDL3.dll
+
+*.exp
+*.ilk
+
+*.o
+*.obj

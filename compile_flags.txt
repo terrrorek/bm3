@@ -1,0 +1,15 @@
+-Wall
+-Wextra
+-pedantic
+-m32
+
+-D__FLOAT_MATH__
+-D__DEBUG
+
+-I.
+-Iengine
+-Icommon
+
+-I3rdparty/SDL3/include
+-I3rdparty/SDL3/include/SDL3
+-I3rdparty/cglm/include

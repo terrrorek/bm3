@@ -1,0 +1,6 @@
+#!/bin/bash
+scons --float-math --debug-symbols
+cd out
+echo $@
+./bm $@
+cd ..

@@ -30,20 +30,17 @@ static void Ent_FindDeclFuncs( edecl_t* edecl )
 {
    char nameBuf[96];
 
-   BM_snprintf( nameBuf, 96, "__%s", edecl->name );
+   BM_snprintf( nameBuf, 96, "%s_create", edecl->name );
    edecl->create = (newentfunc_t) Game_GetFuncHandle( nameBuf );
-   BM_snprintf( nameBuf, 96, "__%s_spawn", edecl->name );
+   BM_snprintf( nameBuf, 96, "%s_spawn", edecl->name );
    edecl->spawn = (entfunc_t) Game_GetFuncHandle( nameBuf );
-   BM_snprintf( nameBuf, 96, "__%s_update", edecl->name );
+   BM_snprintf( nameBuf, 96, "%s_update", edecl->name );
    edecl->update = (updateentfunc_t) Game_GetFuncHandle( nameBuf );
-   BM_snprintf( nameBuf, 96, "__%s_kill", edecl->name );
+   BM_snprintf( nameBuf, 96, "%s_kill", edecl->name );
    edecl->kill = (entfunc_t) Game_GetFuncHandle( nameBuf );
-   BM_snprintf( nameBuf, 96, "__%s_destroy", edecl->name );
-   edecl->destroy = (entfunc_t) Game_GetFuncHandle( nameBuf );
 
    if( !edecl->create || !edecl->spawn ||
-       !edecl->update || !edecl->kill ||
-       !edecl->destroy )
+       !edecl->update || !edecl->kill )
    {
       Cmd_Errorf( "invalid edecl \"%s\" (not all funcs present)\n", edecl->name );
    }
@@ -52,7 +49,7 @@ static void Ent_FindDeclFuncs( edecl_t* edecl )
 static bool Ent_DeclExists( const char* name )
 {
    char nameBuf[96];
-   BM_snprintf( nameBuf, sizeof(nameBuf), "__%s", name );
+   BM_snprintf( nameBuf, sizeof(nameBuf), "%s_create", name );
    return Game_GetFuncHandle( nameBuf ) ? TRUE : FALSE;
 }
 
@@ -161,7 +158,7 @@ bool Ent_Destroy( eobj_t* ent )
       return false;
 
    if( ent->clazz && ent->edecl )
-      ent->edecl->destroy( ent->clazz );
+      ent->edecl->kill( ent->clazz );
 
    WIPEPTR( ent );
    return true;

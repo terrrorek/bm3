@@ -16,7 +16,6 @@ typedef struct edecl_s
    entfunc_t         spawn;
    updateentfunc_t   update;
    entfunc_t         kill;
-   entfunc_t         destroy;
 } edecl_t;
 
 #define MAX_EDECL BIT(8)

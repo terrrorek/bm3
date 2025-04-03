@@ -161,7 +161,7 @@ TASKS = [
    Subproject('rend/gl', '*.c', gl_files, dll_cflags),
    Subproject('rend/soft', '*.c', soft_files, dll_cflags),
 
-   Subproject('game', '*.cc', game_files, dll_cflags),
+   Subproject('game', '*.c', obj_files),
 ]
 
 for task in TASKS:
@@ -174,14 +174,6 @@ if os.name == 'posix':
 env.Program(
    'out/bm',
    obj_files,
-   LIBS=global_libs,
-   LIBPATH=global_libpath,
-   LINKFLAGS=global_ldflags,
-)
-
-env.SharedLibrary(
-   'out/game',
-   game_files,
    LIBS=global_libs,
    LIBPATH=global_libpath,
    LINKFLAGS=global_ldflags,

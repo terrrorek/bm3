@@ -117,7 +117,7 @@ int main( int argc, char** argv )
    File_Init( );
 
    CVar_Register( &eng_rate );
-   Game_Init( );
+   Game_SetupExports( );
    IN_InitMove( );
 
    if( !isDedicated && !isHeadless )
@@ -192,7 +192,6 @@ int main( int argc, char** argv )
       Client_Quit( );
       Vid_Quit( );
    }
-   Game_Quit( );
    Net_Quit( );
 
    // if( Heap )

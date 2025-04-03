@@ -18,7 +18,7 @@
 
 eng_exports_t engExports = {0};
 
-static void Game_SetupExports( void )
+void Game_SetupExports( void )
 {
    engExports = (eng_exports_t){
       .state = &vidState,
@@ -39,56 +39,36 @@ static void Game_SetupExports( void )
    };
 }
 
-void Game_Init( void )
+#ifdef _WIN32
+// can't be static
+HMODULE Game_GetEngineHandle( void )
 {
-   Game_SetupExports( );
+   HMODULE  hm;
+   GetModuleHandleEx( GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
+      (LPCTSTR)Game_GetEngineHandle, &hm );
+   return hm;
+}
+#else
+void* Game_GetEngineHandle( void )
+{
+   void* gm;
 
-   char nameBuffer[64];
+   gm = dlopen( "bm", RTLD_NOW | RTLD_GLOBAL );
+   if( !gm )
+      Cmd_Error( "failed to load engine as dl\n" );
 
-   #if defined( _WIN32 )
-      BM_snprintf( nameBuffer, sizeof(nameBuffer), "game." GAME_EXT );
-      gameHandle = LoadLibrary( nameBuffer );
-   #elif defined( __linux__ )
-      BM_snprintf( nameBuffer, sizeof(nameBuffer), "./libgame." GAME_EXT );
-      gameHandle = dlopen( nameBuffer, RTLD_NOW | RTLD_GLOBAL );
-   #endif
+   return gm;
+}
+#endif
 
+void* Game_GetFuncHandle( const char* sym )
+{
    if( !gameHandle )
-   {
-      Cmd_Errorf( "failed to load game module!\n" );
-   }
+      gameHandle = Game_GetEngineHandle( );
 
-   int (*Game_LoadFuncs)(eng_exports_t*) =
-      ( int(*)(eng_exports_t*) ) Game_GetFuncHandle( "Game_LoadFuncs" );
-
-   if( !Game_LoadFuncs )
-   {
-      Cmd_Errorf( "failed to load game module! (Game_LoadFuncs not found)\n" );
-   }
-
-   int result = 0;
-   if(( result = Game_LoadFuncs( &engExports ) ))
-   {
-      Cmd_Errorf( "failed to load game module! (Game_LoadFuncs returned %i)\n", result );
-   }
-}
-
-void Game_Quit( void )
-{
-   #if defined( _WIN32 )
-      FreeLibrary( gameHandle );
-   #elif defined( __linux__ )
-      dlclose( gameHandle );
+   #ifdef _WIN32
+   return (void*) GetProcAddress( gameHandle, sym );
+   #else
+   return dlsym( gameHandle, sym );
    #endif
-}
-
-void* Game_GetFuncHandle( const char* name )
-{
-   void* handle = NULL;
-   #if defined( _WIN32 )
-      handle = (void*) GetProcAddress( gameHandle, name );
-   #elif defined( __linux__ )
-      handle = (void*) dlsym( gameHandle, name );
-   #endif
-   return handle;
 }

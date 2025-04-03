@@ -37,8 +37,7 @@ eng_exports_t;
 
 extern eng_exports_t    engExports;
 
-void  Game_Init( void );
-void  Game_Quit( void );
-void* Game_GetFuncHandle( const char* name );
+void  Game_SetupExports( void );
+void* Game_GetFuncHandle( const char* sym );
 
 #endif

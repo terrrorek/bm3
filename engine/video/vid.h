@@ -30,8 +30,9 @@ typedef struct vidstate_s
    SDL_Surface*   rendSurface;
 } vidstate_t;
 
+extern double     deltaTime;
 extern vidstate_t vidState;
-extern bool shouldExit;
+extern bool       shouldExit;
 
 void Vid_Init( void );
 void Vid_Quit( void );

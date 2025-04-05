@@ -9,8 +9,8 @@ static const char* picFragment =
 #include "shaders/pic.frag"
 ;
 
-ivec4 u_xywh, u_tex_xywh;
-ivec2 u_raw_wh, u_screen_wh;
+ivec2 u_screen_wh;
+vec2  u_top_uv, u_down_uv;
 
 void Rend_InitShaders( void )
 {
@@ -47,14 +47,11 @@ void Rend_UpdateUniforms( uint program )
    pos = glGetUniformLocation( program, "projection" );
    glUniformMatrix4fv( pos, 1, false, (float*)projectionMatrix );
 
-   pos = glGetUniformLocation( program, "xywh" );
-   glUniform4iv( pos, 1, (int*)u_xywh );
+   pos = glGetUniformLocation( program, "top_uv" );
+   glUniform2fv( pos, 1, (float*)u_top_uv );
 
-   pos = glGetUniformLocation( program, "tex_xywh" );
-   glUniform4iv( pos, 1, (int*)u_tex_xywh );
-
-   pos = glGetUniformLocation( program, "raw_wh" );
-   glUniform2iv( pos, 1, (int*)u_raw_wh );
+   pos = glGetUniformLocation( program, "down_uv" );
+   glUniform2fv( pos, 1, (float*)u_down_uv );
 
    pos = glGetUniformLocation( program, "screen_wh" );
    glUniform2iv( pos, 1, (int*)u_screen_wh );
@@ -73,9 +70,9 @@ void Rend_2DProjection( void )
 void Rend_ModelMatrix( vec3 position, vec3 rotation, vec3 scale )
 {
    glm_mat4_identity( modelMatrix );
-   glm_scale( modelMatrix, scale );
    glm_rotate_x( modelMatrix, rotation[0], modelMatrix );
    glm_rotate_y( modelMatrix, rotation[1], modelMatrix );
    glm_rotate_z( modelMatrix, rotation[2], modelMatrix );
    glm_translate( modelMatrix, position );
+   glm_scale( modelMatrix, scale );
 }

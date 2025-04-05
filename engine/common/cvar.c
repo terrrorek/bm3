@@ -3,10 +3,15 @@
 #include <common/bmstring.h>
 #include <common/cmd.h>
 
-static cvar_t* lastCVar = NULL;
+cvar_t* lastCVar = NULL;
 
 void CVar_Register( cvar_t* cvar )
 {
+   cvar_t*  found;
+
+   if(( found = CVar_Get(cvar->name) ))
+      return;
+
    if( lastCVar )
       lastCVar->next = cvar;
    cvar->prev = lastCVar;
@@ -20,7 +25,7 @@ cvar_t* CVar_Get( const char* name )
 
    while( cvar )
    {
-      if(!BM_strcmp( cvar->name, name ))
+      if(!( cvar->flags & CVAR_INTERNAL ) && !BM_strcmp( cvar->name, name ))
          return cvar;
       cvar = cvar->prev;
    }

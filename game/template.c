@@ -1,4 +1,6 @@
+#include <common/common.h>
 #include <game/eobj.h>
+#include <game/state.h>
 #include <common/alloc.h>
 #include <game/helpers.h>
 

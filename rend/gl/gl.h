@@ -37,8 +37,8 @@ extern uint             quadArray;
 extern uint             picShader;
 
 extern mat4             modelMatrix, viewMatrix, projectionMatrix;
-extern ivec4            u_xywh, u_tex_xywh;
-extern ivec2            u_raw_wh, u_screen_wh;
+extern vec2             u_top_uv, u_down_uv;
+extern ivec2            u_screen_wh;
 
 static void Rend_RGBAToVec( rgba_t color, vec4* vec )
 {

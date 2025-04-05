@@ -32,6 +32,13 @@ AddOption(
    action='store_true',
    help='generate debug symbols'
 )
+AddOption(
+   '--no-optimize',
+   dest='optimize',
+   default=True,
+   action='store_false',
+   help='don\'t optimize engine',
+)
 
 if os.name == 'posix' and not env.GetOption( 'float-math' ):
    global_cflags += ['-msse', '-msse2']
@@ -54,6 +61,11 @@ elif os.name == 'nt' and env.GetOption('debug'):
    global_cflags.append( '/D__DEBUG' )
    # global_cflags.append( '/fsanitize=address' )
    global_ldflags.append( '/DEBUG' )
+
+if os.name == 'posix' and env.GetOption('optimize'):
+   global_cflags.append('-O2')
+elif os.name == 'nt' and env.GetOption('optimize'):
+   global_cflags.append('/O2')
 
 if os.name == 'nt':
    global_libs += ['user32', 'ws2_32']

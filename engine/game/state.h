@@ -10,6 +10,7 @@ typedef enum game_state_e
 }
 game_state_t;
 
+extern double        gameTime;
 extern game_state_t  gameState;
 
 void GS_Init( void );

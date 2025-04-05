@@ -1,5 +1,6 @@
-#include <game/edecl.h>
+#include <game/state.h>
 #include <game/eobj.h>
+#include <game/edecl.h>
 #include <game/dll.h>
 #include <common/bmstring.h>
 #include <common/cmd.h>
@@ -10,6 +11,14 @@ edecl_t edecls[MAX_EDECL] = {0};
 
 static int eobjCount = 0;
 eobj_t eobjs[MAX_EOBJ] = {0};
+
+extern uint64_t secondDur;
+
+cvar_t   r_interp = {
+   .name = "r_interp",
+   .flags = CVAR_NUMBER,
+   .number = TRUE,
+};
 
 // static
 
@@ -149,6 +158,10 @@ void Ent_Update( eobj_t* ent, bool client )
       ent->data.spawned = TRUE;
       return;
    }
+
+
+   ent->interp = 0;
+   memcpy( &ent->lastdata, &ent->data, sizeof(edata_t) );
    ent->edecl->update( ent->clazz, client );
 }
 
@@ -201,25 +214,62 @@ uint Ent_Count( void )
    return count;
 }
 
+extern double nowTime, lastUpdate;
+extern cvar_t eng_rate;
+
+static void Ent_InterpolateTransform( eobj_t* ent, vec3* pos, vec3* rot, vec3* scale )
+{
+   if( ent->interp > 1.0 )
+      return;
+
+   glm_vec3_lerp(
+      ent->lastdata.transform.position,
+      ent->data.transform.position,
+      ent->interp, *pos );
+
+   glm_vec3_lerp(
+      ent->lastdata.transform.rotation,
+      ent->data.transform.rotation,
+      ent->interp, *rot );
+
+   glm_vec3_lerp(
+      ent->lastdata.transform.scale,
+      ent->data.transform.scale,
+      ent->interp, *scale );
+
+   ent->interp = (nowTime - lastUpdate) * eng_rate.number;
+}
+
 void Ent_Draw( void )
 {
-   uint i = 0;
+   uint     i = 0;
+   eobj_t*  obj;
+
+   if(!( r_interp.flags & CVAR_REGISTERED ))
+      CVar_Register( &r_interp );
 
    do
    {
-      if( !eobjs[i].data.spawned )
+      obj = &eobjs[i];
+      if( !obj->data.spawned )
       {
          ++i;
          continue;
       }
 
+      vec3  pos, rot, scale;
+
+      if( !r_interp.number )
+         obj->interp = 1.f;
+
+      Ent_InterpolateTransform( obj, &pos, &rot, &scale );
+
       // TEMP: drawing flat sprites
-      if( eobjs[i].edecl && eobjs[i].mat.pic )
-         rendImports.Rend_DrawPic( eobjs[i].mat.pic,
-            eobjs[i].data.transform.position[0],
-            eobjs[i].data.transform.position[1],
-            eobjs[i].data.transform.scale[0],
-            eobjs[i].data.transform.scale[1] );
+      if( obj->edecl && obj->mat.pic )
+      {
+         rendImports.Rend_DrawPic( obj->mat.pic,
+            pos[0], pos[1], scale[0], scale[1] );
+      }
       ++i;
    }
    while( i < MAX_EOBJ );

@@ -10,7 +10,7 @@
 
 bool     conOpened = FALSE;
 
-uint     conBackground = 0, conFont = 0;
+uint     conBackground = 0, conFont = 0, colortest = 0;
 
 static input_t conInput = {
    .name = "console",
@@ -33,7 +33,7 @@ float    consoleLerp = 0;
 
 void Con_DumpCVars_f( void )
 {
-   cvar_t*  cv;
+   cvar_t*  cv = lastCVar;
 
    while( cv )
    {
@@ -78,19 +78,23 @@ void Con_Execute( const char* buf )
          return;
       }
 
-      switch( cv->flags )
+      if( cv->flags & CVAR_LOCKED )
       {
-      case CVAR_NORMAL:
-         cv->normal = atof( sep );
-         break;
-      case CVAR_NUMBER:
-         cv->number = atoi( sep );
-         break;
-      case CVAR_STRING:
-         BM_strncpy( cv->string, sep, 200 );
-         break;
-      default: break;
+         Con_Printf( "can't set cvar \"%s\", because it's locked\n", cv->name );
+         return;
       }
+
+      if( cv->flags & CVAR_NORMAL )
+         cv->normal = atof( sep );
+      else if( cv->flags & CVAR_NUMBER )
+         cv->number = atoi( sep );
+      else if( cv->flags & CVAR_STRING )
+         BM_strncpy( cv->string, sep, 200 );
+      else if( cv->flags & CVAR_FUNCTION )
+         return;
+      else
+         Con_Printf( "unknown cvar type %02X for \"\"\n", cv->flags, cv->name );
+
       cv->changed = true;
    }
    else // func
@@ -179,6 +183,7 @@ void Con_Init( void )
 
    IN_RegisterInput( &conInput );
    conBackground = R_LoadTexture( "ui/conbg.tga", 0 );
+   colortest = R_LoadTexture( "colortest.tga", 0 );
    conFont = R_LoadTexture( "ui/font.tga", PIC_FONT );
    memset( consoleInput, 0, sizeof(consoleInput) );
    consoleHeight = -(vidState.height / 2);
@@ -248,16 +253,14 @@ void Con_Draw( void )
 
    conh = vidState.height / 2;
 
-   rendImports.Rend_DrawChar( conFont, 'x', 32, 350, 128, 192 );
-
    if( consoleChanging == 1 && consoleHeight != 0 )
    {
-      consoleLerp += 20 * deltaTime;
+      consoleLerp += 2 * deltaTime;
       consoleHeight = BM_lerp(-conh - 24, 0, consoleLerp);
    }
    else if( consoleChanging == -1 && consoleHeight > -conh )
    {
-      consoleLerp += 20 * deltaTime;
+      consoleLerp += 2 * deltaTime;
       consoleHeight = BM_lerp(0, -conh - 24, consoleLerp);
    }
 

@@ -9,24 +9,6 @@
 vidstate_t  vidState = {0};
 char*       renderer = NULL;
 
-cvar_t vid_rend = {
-   .name = "vid_rend",
-   .flags = CVAR_STRING,
-   .string = "soft",
-};
-
-void Vid_Restart_f( void )
-{
-   Vid_Quit( );
-   Vid_Init( );
-}
-
-cvar_t vid_restart = {
-   .name = "vid_restart",
-   .flags = CVAR_FUNCTION,
-   .function = Vid_Restart_f,
-};
-
 static rend_context_t Vid_GetContextFromString( const char* str )
 {
    if( !BM_strcmp( str, "soft") )
@@ -104,6 +86,8 @@ static void Vid_QuitWindow( void )
 {
    if( vidState.glContext )
       SDL_GL_DestroyContext( vidState.glContext );
+   if( vidState.rendSurface )
+      SDL_DestroySurface( vidState.rendSurface );
    if( vidState.window )
       SDL_DestroyWindow( vidState.window );
 }
@@ -111,9 +95,6 @@ static void Vid_QuitWindow( void )
 void Vid_Init( void )
 {
    WIPEOUT( vidState );
-
-   CVar_Register( &vid_rend );
-   CVar_Register( &vid_restart );
 
    int width = Cmd_GetIntArg( "-width" ),
        height = Cmd_GetIntArg( "-height" );
@@ -202,13 +183,5 @@ void Vid_Draw( void )
    }
    default:
       break;
-   }
-
-   if( vid_rend.changed )
-   {
-      vid_rend.changed = false;
-      renderer = vid_rend.string;
-      Cmd_Printf( "%s\n", renderer );
-      Vid_Restart_f( );
    }
 }

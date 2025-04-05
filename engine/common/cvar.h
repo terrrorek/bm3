@@ -6,12 +6,16 @@
 
 typedef enum cvar_flags_e
 {
-   CVAR_NORMAL       = 0x1,
-   CVAR_NUMBER       = 0x2,
-   CVAR_STRING       = 0x4,
-   CVAR_FUNCTION     = 0x8,
+   CVAR_NORMAL       = 0x0001,
+   CVAR_NUMBER       = 0x0002,
+   CVAR_STRING       = 0x0004,
+   CVAR_FUNCTION     = 0x0008,
 
-   CVAR_REGISTERED   = 0x100
+   CVAR_REGISTERED   = 0x1000,
+
+   CVAR_INTERNAL     = 0x0100,
+   CVAR_LOCKED       = 0x0200,
+   CVAR_SERVER       = 0x0400,
 }
 cvar_flags_t;
 
@@ -32,6 +36,8 @@ typedef struct cvar_s
    struct cvar_s* next, * prev;
 }
 cvar_t;
+
+extern cvar_t* lastCVar;
 
 void     CVar_Register( cvar_t* cvar );
 cvar_t*  CVar_Get( const char* name );

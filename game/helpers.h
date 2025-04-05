@@ -9,15 +9,14 @@
    typedef struct x##_s\
    { eobj_t* obj; __VA_ARGS__ } x##_t;
 
-#define PHYSCLASS(x, ...)\
-   CLASS(x, vec3 velocity; __VA_ARGS__)
-
 #define CREATE(x, c)\
    EXPORT void x##_create( void** ret, eobj_t* obj )\
    {\
+      x##_t* this;\
       *ret = Mem_Alloc( sizeof( x##_t ) );\
       memset( *ret, 0, sizeof( x##_t ) );\
-      (( x##_t* )*ret)->obj = obj;\
+      this = (x##_t*)(*ret);\
+      this->obj = obj;\
       c\
    }
 

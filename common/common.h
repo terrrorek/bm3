@@ -30,8 +30,6 @@ typedef byte            bool;
 #endif
 typedef unsigned int    uint;
 
-extern double deltaTime;
-
 static void HexDump( void* ptr, uint size )
 {
    uint  i, n;

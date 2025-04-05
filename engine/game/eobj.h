@@ -29,7 +29,10 @@ typedef struct eobj_s
    uint        index;
    byte        player;
    emat_t      mat;
+
    edata_t     data;
+   edata_t     lastdata; // Data before update
+   float       interp;
 } eobj_t;
 
 #define MAX_EOBJ_CHANCES 3

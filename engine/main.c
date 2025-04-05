@@ -29,7 +29,8 @@
 bool shouldExit = FALSE;
 bool isDedicated = FALSE, isHeadless = FALSE;
 
-double   deltaTime = 0.0;
+double   nowTime = 0.0, deltaTime = 0.0, gameTime = 0.0;
+double   lastFrame = 0.0, lastUpdate = 0.0;
 uint64_t secondDur = 0;
 
 game_state_t   gameState = GS_MENU;
@@ -94,8 +95,6 @@ static void CalculateSecondCycles( void )
 
 int main( int argc, char** argv )
 {
-   double   updateTime = 0.0, frameTime = 0.0;
-
    CalculateSecondCycles( );
    signal( SIGINT, IntHandler );
 
@@ -117,6 +116,8 @@ int main( int argc, char** argv )
    File_Init( );
 
    CVar_Register( &eng_rate );
+   CVar_Register( &vid_fps );
+
    Game_SetupExports( );
    IN_InitMove( );
 
@@ -142,45 +143,54 @@ int main( int argc, char** argv )
 
    while( !shouldExit )
    {
-      double now = (double) SDL_GetTicks( ) / 1000.0;
-      deltaTime = now - updateTime;
+      nowTime = (double) SDL_GetTicks( ) / 1000.0;
+      gameTime    = nowTime - lastUpdate;
+      deltaTime   = nowTime - lastFrame;
 
       if( !isDedicated && !isHeadless )
          Vid_Update( );
 
-      if( (now - frameTime) >= (1.0 / eng_rate.number) )
+      if( (nowTime - lastUpdate) >= (1.0 / eng_rate.number) )
       {
          switch( gameState )
          {
          case GS_GAME:
             Host_Update( );
             if( !isDedicated )
-            {
                Client_Update( );
-               Ent_Draw( );
-            }
 
          case GS_MENU:
-               IN_ProcessInput( );
-
-         break;
+            break;
          }
 
-         Con_Process( );
-
-         if( !isDedicated && !isHeadless)
-         {
-            // drawing
-            rendImports.Rend_Clear( true );
-
-            Ent_Draw( );
-            Con_Draw( );
-            Vid_Draw( );
-         }
-         frameTime = now;
+         lastUpdate = nowTime;
       }
 
-      updateTime = now;
+      if( (nowTime - lastFrame) >= (1.0 / vid_fps.number) && (!isDedicated && !isHeadless) )
+      {
+         // input
+         IN_ProcessInput( );
+
+         // drawing
+         rendImports.Rend_Clear( true );
+
+         switch( gameState )
+         {
+         case GS_GAME:
+            Ent_Draw( );
+
+         case GS_MENU:
+            break;
+         }
+
+         // console is independent from game updates
+         Con_Draw( );
+         Con_Process( );
+
+         Vid_Draw( );
+
+         lastFrame = nowTime;
+      }
    }
 
    // Mem_Print( );

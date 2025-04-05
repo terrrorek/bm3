@@ -47,13 +47,15 @@ inline static uint32_t Rend_PackColor( rgba_t col )
 inline static void Rend_SetBuffer( int x, int y, rgba_t col )
 {
    uint32_t packed = Rend_PackColor( col );
-   if( (x > state->width || x < 0) || (y > state->height || y < 0) )
+   if( (x >= state->width || x < 0) || (y >= state->height || y < 0) )
       return;
    screenBuffer[POS(x,y)] = packed;
 }
 
 inline static void Rend_SetDepth( int x, int y, float depth )
 {
+   if( (x >= state->width || x < 0) || (y >= state->height || y < 0) )
+      return;
    depthBuffer[POS(x,y)] = depth;
 }
 

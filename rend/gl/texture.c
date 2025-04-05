@@ -6,18 +6,20 @@ gltexture_t    textures[MAX_GLTEXTURES];
 
 static void    Rend_UploadTexture( gltexture_t* tex, pic_t* pic )
 {
-   tex->width = pic->width;
+   tex->width  = pic->width;
    tex->height = pic->height;
 
    glGenTextures( 1, &tex->handle );
 
    glBindTexture( GL_TEXTURE_2D, tex->handle );
-   glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+   glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR );
    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
    glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8,
       pic->width, pic->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pic->buffer );
+
+   glGenerateMipmap( GL_TEXTURE_2D );
    glBindTexture( GL_TEXTURE_2D, 0 );
 }
 
@@ -96,6 +98,45 @@ void Rend_DestroyTexture( uint index )
    WIPEPTR( gltex );
 }
 
+static void Rend_CalcUVs( gltexture_t* tex,
+   int ofx, int ofy, int scx, int scy, vec2* top, vec2* down )
+{
+   #define UNINF(x) if( isinf(x) ) x = 0.f;
+   float    sx, sy;
+   float    ox, oy;
+
+   ox = (float)ofx / (float)tex->width;
+   UNINF(ox);
+   oy = (float)ofy / (float)tex->height;
+   UNINF(oy);
+
+
+   if( scx < (int)tex->width )
+      sx = (float)scx / (float)tex->width;
+   else
+   {
+      sx = 1.f;
+   }
+
+   if( scy < (int)tex->height )
+      sy = (float)scy / (float)tex->height;
+   else
+   {
+      sy = 1.f;
+   }
+
+   UNINF(sx);
+   UNINF(sy);
+
+   //engFuncs->Cmd_Printf( "%i %i\t: %i %i\t: %i %i\n", tex->width, tex->height, ofx, ofy, scx, scy );
+   //engFuncs->Cmd_Printf( "%f %f : %f %f\n", ox, oy, sx, sy );
+
+   (*top)[0] = ox;
+   (*top)[1] = oy;
+   (*down)[0] = ox + sx;
+   (*down)[1] = oy + sy;
+}
+
 static void Rend_GetCharOffset( gltexture_t* tex, char x, int* chx, int* chy )
 {
    int chw;
@@ -147,17 +188,15 @@ static void Rend_DrawPicImpl( gltexture_t* gltex, int x, int y, int w, int h,
    xpix = 1.f / (float)state->width;
    ypix = 1.f / (float)state->height;
 
-   pos[0] = (x * xpix * 2);
-   pos[1] = -(y * ypix * 2);
+   pos[0] = (x * xpix);
+   pos[1] = (y * ypix);
    pos[2] = 0.f;
 
    scale[0] = (float)w / state->width;
    scale[1] = -((float)h / state->height);
    scale[2] = 1.f;
 
-   memcpy( u_raw_wh, (ivec2){gltex->width, gltex->height}, sizeof(u_raw_wh) );
-   memcpy( u_xywh, (ivec4){x, y, w, h}, sizeof(u_xywh) );
-   memcpy( u_tex_xywh, (ivec4){ofx, ofy, scx, scy}, sizeof(u_tex_xywh) );
+   Rend_CalcUVs( gltex, ofx, ofy, scx, scy, &u_top_uv, &u_down_uv );
 
    glBindVertexArray( quadArray );
    glBindTexture( GL_TEXTURE_2D, gltex->handle );

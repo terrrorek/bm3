@@ -1,0 +1,41 @@
+#ifndef PACK_H
+#define PACK_H
+
+#include <common/common.h>
+
+enum pack_type_e
+{
+   PACK_TYPE_CTOS, // client(s) to server
+   PACK_TYPE_STOC, // server to client(s)
+   PACK_TYPE_UNIFORM, // uniform
+};
+
+enum pack_format_t
+{
+   // client formats
+   PACK_FMT_INPUT, // player input
+
+   // server formats
+   PACK_FMT_ENTS, // server entities
+};
+
+typedef struct packet_s
+{
+   byte     type;
+   byte     format;
+
+   short    sender; /*   <-- client id or 0 for server | */
+   short    receiver; /* <-----------------------------| */
+   uint32_t hash; // msg data hash (blake2s)
+
+   uint     datasize;
+   void*    data;
+}
+packet_t;
+
+void Net_ConstructPacket( packet_t* msg,
+   enum pack_type_e type, enum pack_format_t format,
+   void* data, uint datasize );
+void Net_DissolvePacket( packet_t* msg );
+
+#endif

@@ -117,6 +117,14 @@ void* Mem_Alloc( uint32_t size )
    #endif
 }
 
+void* Mem_Realloc( void* data, uint32_t size )
+{
+   return realloc( data, size );
+   #if 0
+
+   #endif
+}
+
 void Mem_Free( void* data )
 {
    free( data );

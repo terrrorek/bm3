@@ -1,5 +1,6 @@
 
 #include <host/host.h>
+#include <net/net.h>
 #include <common/cmd.h>
 #include <client/client.h>
 
@@ -10,6 +11,7 @@ void Host_Init( void )
 
 void Host_Update( void )
 {
+   Net_ServerLoop( &hostsock );
    Ent_Process( false );
 }
 

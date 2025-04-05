@@ -29,6 +29,7 @@ msector_t;
 void  Mem_Print( void );
 void  Mem_Init( void* heap, int heapsize );
 void* Mem_Alloc( uint32_t size );
+void* Mem_Realloc( void* data, uint32_t size );
 void  Mem_Free( void* data );
 
 #endif

@@ -160,6 +160,7 @@ int main( int argc, char** argv )
                Client_Update( );
 
          case GS_MENU:
+            GS_Try( );
             break;
          }
 

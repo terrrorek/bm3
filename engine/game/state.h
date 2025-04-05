@@ -14,6 +14,8 @@ extern double        gameTime;
 extern game_state_t  gameState;
 
 void GS_Init( void );
+void GS_Try( void );
+void GS_Update( void );
 void GS_BeginLocal( void );
 void GS_End( void );
 

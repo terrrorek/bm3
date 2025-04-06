@@ -10,13 +10,16 @@ typedef enum game_state_e
 }
 game_state_t;
 
-extern double        gameTime;
+extern double        gameTime, connectTime;
 extern game_state_t  gameState;
+extern bool          gameLocal;
 
-void GS_Init( void );
-void GS_Try( void );
-void GS_Update( void );
-void GS_BeginLocal( void );
-void GS_End( void );
+void Game_Init( void );
+void Game_Host( void );
+void Game_EndHost( void );
+void Game_TryConnect( void );
+void Game_Connect( const char* addr, uint16_t port );
+void Game_ConnectLocal( void );
+void Game_Exit( void );
 
 #endif

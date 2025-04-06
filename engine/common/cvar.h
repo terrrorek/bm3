@@ -19,6 +19,8 @@ typedef enum cvar_flags_e
 }
 cvar_flags_t;
 
+typedef void (*confunc_t)(const char*);
+
 typedef struct cvar_s
 {
    char           name[48];
@@ -26,10 +28,10 @@ typedef struct cvar_s
 
    union
    {
-      char     string[200];
-      int      number;
-      float    normal;
-      void     (*function)(void);
+      char        string[200];
+      int         number;
+      float       normal;
+      confunc_t   function;
    };
 
    bool           changed;

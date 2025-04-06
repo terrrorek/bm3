@@ -11,13 +11,18 @@ enum pack_type_e
 };
 
 enum pack_format_t
-{
+{  __BEGINNING,
+   // uniform formats
+   PACK_FMT_MESSAGE,
+
    // client formats
    PACK_FMT_INPUT, // player input
 
    // server formats
    PACK_FMT_ENTS, // server entities
 };
+
+#define MAX_PACK_SIZE 256
 
 typedef struct packet_s
 {
@@ -28,8 +33,7 @@ typedef struct packet_s
    short    receiver; /* <-----------------------------| */
    uint32_t hash; // msg data hash (blake2s)
 
-   uint     datasize;
-   void*    data;
+   byte     data[MAX_PACK_SIZE];
 }
 packet_t;
 

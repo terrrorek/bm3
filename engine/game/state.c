@@ -7,76 +7,129 @@
 #include <game/eobj.h>
 #include <video/pic.h>
 
-cvar_t   game_begin_f = {
-   .name = "game_begin",
-   .function = GS_BeginLocal,
-   .flags = CVAR_FUNCTION,
-};
-cvar_t   game_end_f = {
-   .name = "game_end",
-   .function = GS_End,
-   .flags = CVAR_FUNCTION,
-};
+#include <SDL3/SDL.h>
 
-bool        isTrying = false;
-uint        tries = 0;
-char        tryAddr[32];
-uint16_t    tryPort;
+bool     isTrying = FALSE;
+uint     tries = 0;
+char     tryAddr[32];
+uint16_t tryPort;
 
-void GS_Init( void )
+double   connectTime = 0.0;
+bool     gameLocal = FALSE;
+
+static void Game_Connect_f( const char* address )
 {
-   CVar_Register( &game_begin_f );
-   CVar_Register( &game_end_f );
+   if( address == NULL )
+   {
+      Con_Printf( "no address given.\n" );
+      return;
+   }
+
+   int      port;
+   char     addr[32];
+
+   char*    sep = strchr( address, ':' );
+   if( !sep )
+      port = 21371;
+   else
+   {
+      port = atoi( sep + 1 );
+      *sep = 0;
+   }
+
+   BM_strcpy( addr, address );
+   Game_Connect( addr, port );
+   gameLocal = FALSE;
+}
+static cvar_t _connect = {
+   .name = "connect",
+   .flags = CVAR_FUNCTION,
+   .function = Game_Connect_f
+};
+
+static void Game_Disconnect_f( void )
+{
+   Game_Exit( );
+}
+static cvar_t _disconnect = {
+   .name = "disconnect",
+   .flags = CVAR_FUNCTION,
+   .function = (confunc_t) Game_Disconnect_f,
+};
+
+void Game_Init( void )
+{
+   CVar_Register( &_connect );
+   CVar_Register( &_disconnect );
 }
 
-void GS_Try( void )
+void Game_Host( void )
+{
+   Net_Host( );
+}
+
+void Game_EndHost( void )
+{
+   Net_EndHost( );
+}
+
+void Game_TryConnect( void )
 {
    if( !isTrying )
       return;
 
-   if(!Net_Connect( &gamesock, tryAddr, tryPort ))
+   switch( isTrying )
    {
-      if( tries >= 3 )
+   case 1:
+      if( tries > 5 )
       {
-         Con_Errorf( "stop trying.\n" );
          isTrying = FALSE;
          tries = 0;
+         Con_Errorf( "failed to connect to %s:%i!\n", tryAddr, tryPort );
+         tryAddr[0] = '\0';
+         tryPort = 0;
          return;
       }
 
-      Con_Printf( "try %i...\n", tries++ );
-      return;
+      if(!Net_Connect( &gamesock, tryAddr, tryPort ))
+      {
+         Con_Printf( "again trying connect to %s:%i... (try %i)\n",
+            tryAddr, tryPort, 1 + tries++ );
+         return;
+      }
+      else
+      {
+         connectTime = (double) SDL_GetTicks( ) / 1000.0;
+         Con_Printf( "connected to %s:%i.\n", tryAddr, tryPort );
+         gameState = GS_GAME;
+         isTrying = FALSE;
+         Con_Printf( "waiting for acceptance...\n" );
+      }
+      break;
+   default: break;
    }
-
-   isTrying = 0;
-   tries = 0;
 }
 
-void GS_Update( void )
+void Game_Connect( const char* addr, uint16_t port )
 {
-   GS_Try( );
-}
-
-void GS_BeginLocal( void )
-{
-   gameState = GS_GAME;
+   Net_DestroySocket( &gamesock );
+   Net_InitSocket( &gamesock );
 
    isTrying = TRUE;
-   tries = 0;
-
-   BM_strcpy( tryAddr, "127.0.0.1" );
-   tryPort = 21371;
-
-   // uint test = R_LoadTexture( "pic.tga", 0 );
-   // eobj_t* pl = Ent_Create( "player" );
-   // pl->data.transform.scale[0] = 64.f;
-   // pl->data.transform.scale[1] = 64.f;
-   // pl->mat.pic = test;
+   BM_strcpy( tryAddr, addr );
+   tryPort = port;
 }
 
-void GS_End( void )
+void Game_ConnectLocal( void )
 {
-   Net_Disconnect( &gamesock );
+   gameLocal = TRUE;
+   Game_Host( );
+   Game_Connect( "127.0.0.1", 21371 );
+}
 
-   Ent_DestroyAll( );
+void Game_Exit( void )
+{
+   gameState = GS_MENU;
+   Net_EndHost( );
+   Net_DestroySocket( &gamesock );
 }

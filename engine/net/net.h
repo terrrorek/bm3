@@ -17,6 +17,9 @@ WSADATA  wsData;
 
 
 #ifdef _WIN32
+#undef EWOULDBLOCK
+#undef EMSGSIZE
+#define EMSGSIZE WSAEMSGSIZE
 #define EWOULDBLOCK WSAEWOULDBLOCK
 #define WINERR\
    code = WSAGetLastError( );
@@ -47,12 +50,18 @@ socket_t;
 
 extern socket_t   gamesock, hostsock;
 extern char       playername[32];
+extern byte       netkey[16];
+
+extern bool       isDedicated;
 
 void Net_InitSocket( socket_t* sock );
 void Net_DestroySocket( socket_t* sock );
 
 void Net_Init( void );
 void Net_Quit( void );
+
+void Net_Host( void );
+void Net_EndHost( void );
 
 void Net_ClientLoop( socket_t* sock );
 void Net_ServerLoop( socket_t* sock );
@@ -63,11 +72,9 @@ bool Net_Connect( socket_t* sock, const char* addr, uint16_t port );
 void Net_Disconnect( socket_t* sock );
 
 void Net_SendPacket( socket_t* sock, packet_t* pack );
-void Net_SendMessage( socket_t* sock, msg_t* msg );
-
 void Net_RecvPacket( socket_t* sock, packet_t* packet );
-void Net_RecvMessage( socket_t* sock, msg_t* msg );
+void Net_GetPacketHeader( socket_t* sock, packet_t* packet );
 
-byte Net_GetPendingType( socket_t* sock );
+uint32_t Net_HashName( void );
 
 #endif

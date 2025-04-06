@@ -90,8 +90,10 @@ void Con_Execute( const char* buf )
          cv->number = atoi( sep );
       else if( cv->flags & CVAR_STRING )
          BM_strncpy( cv->string, sep, 200 );
-      else if( cv->flags & CVAR_FUNCTION )
-         return;
+      else if( cv->flags & CVAR_FUNCTION && cv->function )
+      {
+         cv->function( sep );
+      }
       else
          Con_Printf( "unknown cvar type %02X for \"\"\n", cv->flags, cv->name );
 
@@ -127,7 +129,7 @@ void Con_Execute( const char* buf )
       }
 
       if( cv->function )
-         cv->function( );
+         cv->function( NULL );
    }
 }
 
@@ -177,9 +179,9 @@ cvar_t   dumpcv_f = {
 
 void Con_Init( void )
 {
-   clear_f.function = Con_Clear_f;
-   exit_f.function = Con_Exit_f;
-   dumpcv_f.function = Con_DumpCVars_f;
+   clear_f.function = (confunc_t)Con_Clear_f;
+   exit_f.function = (confunc_t)Con_Exit_f;
+   dumpcv_f.function = (confunc_t)Con_DumpCVars_f;
 
    IN_RegisterInput( &conInput );
    conBackground = R_LoadTexture( "ui/conbg.tga", 0 );

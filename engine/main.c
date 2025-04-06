@@ -20,6 +20,7 @@
 #ifdef _WIN32
    #define WIN32_LEAN_AND_MEAN
    #include <windows.h>
+   #include <conio.h>
 #else
    #include <unistd.h>
 #endif
@@ -131,15 +132,17 @@ int main( int argc, char** argv )
    }
 
    Con_Init( );
-
-   Cmd_Printf( "update\n" );
    Net_Init( );
    Host_Init( );
-
-   GS_Init( );
+   Game_Init( );
 
    if( !isDedicated )
       Client_Init( );
+   else
+   {
+      Game_Host( );
+      gameState = GS_GAME;
+   }
 
    while( !shouldExit )
    {
@@ -160,7 +163,7 @@ int main( int argc, char** argv )
                Client_Update( );
 
          case GS_MENU:
-            GS_Try( );
+            Game_TryConnect( );
             break;
          }
 
@@ -186,12 +189,22 @@ int main( int argc, char** argv )
 
          // console is independent from game updates
          Con_Draw( );
-         Con_Process( );
-
          Vid_Draw( );
 
          lastFrame = nowTime;
       }
+
+      if( isDedicated )
+      {
+         conOpened = TRUE;
+
+         if( _kbhit() )
+            lastKey = _getch( );
+         if( lastKey == '\x3' )
+            shouldExit = TRUE;
+      }
+
+      Con_Process( );
    }
 
    // Mem_Print( );

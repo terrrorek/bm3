@@ -9,7 +9,7 @@ enum msg_type_e
    MSG_TYPE_DISCONNECT,
 };
 
-#define MAX_MSG_DATA 256
+#define MAX_MSG_DATA 63
 
 typedef struct msg_s
 {

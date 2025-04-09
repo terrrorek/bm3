@@ -15,6 +15,7 @@
 #include <common/cvar.h>
 #include <game/state.h>
 #include <net/net.h>
+#include <game/cfg.h>
 
 #include <signal.h>
 #ifdef _WIN32
@@ -133,9 +134,11 @@ int main( int argc, char** argv )
 
    Con_Init( );
    Net_Init( );
-   Host_Init( );
    Game_Init( );
 
+   Cfg_Exec( "default.cfg" );
+
+   Host_Init( );
    if( !isDedicated )
       Client_Init( );
    else
@@ -155,17 +158,9 @@ int main( int argc, char** argv )
 
       if( (nowTime - lastUpdate) >= (1.0 / eng_rate.number) )
       {
-         switch( gameState )
-         {
-         case GS_GAME:
-            Host_Update( );
-            if( !isDedicated )
-               Client_Update( );
-
-         case GS_MENU:
-            Game_TryConnect( );
-            break;
-         }
+         Host_Update( );
+         if( !isDedicated )
+            Client_Update( );
 
          lastUpdate = nowTime;
       }
@@ -188,13 +183,14 @@ int main( int argc, char** argv )
          }
 
          // console is independent from game updates
+         Con_Process( );
          Con_Draw( );
          Vid_Draw( );
 
          lastFrame = nowTime;
       }
 
-      if( isDedicated )
+      if( isDedicated || isHeadless )
       {
          conOpened = TRUE;
 
@@ -202,9 +198,11 @@ int main( int argc, char** argv )
             lastKey = _getch( );
          if( lastKey == '\x3' )
             shouldExit = TRUE;
+
+         putc( lastKey, stdout );
+         Con_Process( );
       }
 
-      Con_Process( );
    }
 
    // Mem_Print( );

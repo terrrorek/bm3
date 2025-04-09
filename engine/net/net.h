@@ -2,60 +2,76 @@
 #define NET_H
 
 #include <common/common.h>
-#include <net/pack.h>
-#include <net/msg.h>
 
 #ifdef _WIN32
-#include <WinSock2.h>
-WSADATA  wsData;
+   #include <WinSock2.h>
+
+   #undef EWOULDBLOCK
+   #define EWOULDBLOCK WSAEWOULDBLOCK
+   #undef EMSGSIZE
+   #define EMSGSIZE WSAEMSGSIZE
+   #undef EINPROGRESS
+   #define EINPROGRESS WSAEINPROGRESS
+
+   #define BLOCK(s, x)\
+      ioctlsocket( s, FIONBIO, (u_long*) &x )
 #else
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <netinet/in.h>
-#include <netdb.h>
+   #include <sys/socket.h>
+   #include <netinet/in.h>
+
+   #define closesocket close
+   #define BLOCK(s, x)\
+      if( x )\
+         fcntl( s, F_SETFL, fcntl(s, F_GETFL) | O_NONBLOCK );\
+      else\
+         fcntl( s, F_SETFL, fcntl(s, F_GETFL) & (~O_NONBLOCK) )
 #endif
 
+#define MAX_CLIENTS 16
 
 #ifdef _WIN32
-#undef EWOULDBLOCK
-#undef EMSGSIZE
-#define EMSGSIZE WSAEMSGSIZE
-#define EWOULDBLOCK WSAEWOULDBLOCK
 #define WINERR\
-   code = WSAGetLastError( );
+   result = WSAGetLastError( )
 #else
 #define WINERR
 #endif
 
-typedef enum socket_flags_e
+typedef uintptr_t sockhandle_t;
+
+typedef enum sock_flags_e
 {
-   SOCK_BOUND     = 0x1,
-   SOCK_CONNECTED = 0x2,
-   SOCK_ACCEPTED  = 0x4,
+   SOCK_CONNECTED    = 0x1,
+   SOCK_BOUND        = 0x2
 }
-socket_flags_t;
+sock_flags_t;
 
-#define MAX_CLIENTS 16
-
-typedef struct socket_s
+typedef struct sockclient_s
 {
-   size_t         packetHandle;
+   sockhandle_t         message;
 
-   socket_flags_t flags;
+   uint32_t             hash; // name hash
+   char                 name[32];
 
-   uint32_t       addr;
+   struct sockaddr_in   address;
+   bool                 closing;
+}
+sockclient_t;
+
+typedef struct bmsock_s
+{
+   sockhandle_t   packet, message;
+   sock_flags_t   flags;
+   sockclient_t   clients[MAX_CLIENTS];
+
+   uint32_t       address;
    uint16_t       port;
 }
-socket_t;
+bmsock_t;
 
-extern socket_t   gamesock, hostsock;
 extern char       playername[32];
-extern byte       netkey[16];
+extern bmsock_t   gamesock, hostsock;
 
-extern bool       isDedicated;
-
-void Net_InitSocket( socket_t* sock );
-void Net_DestroySocket( socket_t* sock );
+uint32_t Net_GetUserHash( void );
 
 void Net_Init( void );
 void Net_Quit( void );
@@ -63,18 +79,24 @@ void Net_Quit( void );
 void Net_Host( void );
 void Net_EndHost( void );
 
-void Net_ClientLoop( socket_t* sock );
-void Net_ServerLoop( socket_t* sock );
+void Net_InitSocket( bmsock_t* sock );
+void Net_QuitSocket( bmsock_t* sock );
+#define Net_ResetSocket( sock )\
+   Net_QuitSocket( sock ); Net_InitSocket( sock )
 
-void Net_Bind( socket_t* sock, uint16_t port );
+void Net_ClientLoop( void );
+void Net_ServerLoop( void );
 
-bool Net_Connect( socket_t* sock, const char* addr, uint16_t port );
-void Net_Disconnect( socket_t* sock );
+void Net_Bind( bmsock_t* sock, const char* addr, uint16_t port );
 
-void Net_SendPacket( socket_t* sock, packet_t* pack );
-void Net_RecvPacket( socket_t* sock, packet_t* packet );
-void Net_GetPacketHeader( socket_t* sock, packet_t* packet );
+// client
 
-uint32_t Net_HashName( void );
+bool Net_Connect( bmsock_t* sock, const char* addr, uint16_t port );
+void Net_Disconnect( bmsock_t* sock );
+
+// server
+
+void Net_Broadcast( sockclient_t* cl, const char* fmt, ... );
+void Net_BroadcastAll( bmsock_t* sock, const char* fmt, ... );
 
 #endif

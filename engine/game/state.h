@@ -17,7 +17,6 @@ extern bool          gameLocal;
 void Game_Init( void );
 void Game_Host( void );
 void Game_EndHost( void );
-void Game_TryConnect( void );
 void Game_Connect( const char* addr, uint16_t port );
 void Game_ConnectLocal( void );
 void Game_Exit( void );

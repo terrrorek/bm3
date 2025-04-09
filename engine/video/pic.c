@@ -1,5 +1,4 @@
 
-#include <net/net.h>
 #include <video/pic.h>
 #include <video/rend.h>
 #include <common/bmstring.h>
@@ -32,7 +31,7 @@ uint R_LoadTexture( const char* name, pic_flags_t flags )
 {
    pic_t*   pic;
 
-   if( isDedicated )
+   if( !rendImports.Rend_CreateTexture )
       return 0;
 
    pic = R_LoadPicFromDisk( name );

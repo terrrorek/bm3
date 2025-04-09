@@ -3,9 +3,9 @@
 #include <common/cmd.h>
 #include <host/host.h>
 #include <game/state.h>
-#include <net/net.h>
 #include <common/bmstring.h>
 #include <game/console.h>
+#include <net/net.h>
 
 extern uint64_t secondDur;
 
@@ -18,15 +18,13 @@ void Client_Init( void )
 
 void Client_Update( void )
 {
-   Net_ClientLoop( &gamesock );
+   if( gameState == GS_GAME )
+      Ent_Process( true );
 
-   if(!( gamesock.flags & SOCK_CONNECTED ))
-      return;
-
-   Ent_Process( true );
+   Net_ClientLoop( );
 }
 
 void Client_Quit( void )
 {
-
+   Net_Disconnect( &gamesock );
 }

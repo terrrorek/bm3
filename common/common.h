@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <math.h>
 #undef bool
 
 #define BMSTR(x) __STRINGIFY(x)

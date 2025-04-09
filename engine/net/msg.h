@@ -3,18 +3,21 @@
 
 #include <common/common.h>
 
-enum msg_type_e
+typedef enum msg_type_e
 {
-   MSG_TYPE_CONNECT = 1,
-   MSG_TYPE_DISCONNECT,
-};
+   MSGT_CONNECT = 1,
+   MSGT_DISCONNECT,
+   MSGT_BROADCAST,
+}
+msg_type_t;
 
-#define MAX_MSG_DATA 63
+#define MAX_MSG_SIZE 512
 
 typedef struct msg_s
 {
-   byte     type;
-   byte     data[MAX_MSG_DATA];
+   byte        type;
+   uint32_t    hash;
+   byte        data[MAX_MSG_SIZE];
 }
 msg_t;
 

@@ -59,6 +59,11 @@ void Con_Clear_f( void )
    consoleLine = 0;
 }
 
+void Con_Echo_f( const char* msg )
+{
+   Con_Printf( "%s\n", msg );
+}
+
 void Con_Execute( const char* buf )
 {
    cvar_t*  cv;
@@ -176,16 +181,20 @@ cvar_t   dumpcv_f = {
    .name = "dumpcv",
    .flags = CVAR_FUNCTION,
 };
+cvar_t   echo_f = {
+   .name = "echo",
+   .flags = CVAR_FUNCTION,
+};
 
 void Con_Init( void )
 {
    clear_f.function = (confunc_t)Con_Clear_f;
    exit_f.function = (confunc_t)Con_Exit_f;
    dumpcv_f.function = (confunc_t)Con_DumpCVars_f;
+   echo_f.function = Con_Echo_f;
 
    IN_RegisterInput( &conInput );
    conBackground = R_LoadTexture( "ui/conbg.tga", 0 );
-   colortest = R_LoadTexture( "colortest.tga", 0 );
    conFont = R_LoadTexture( "ui/font.tga", PIC_FONT );
    memset( consoleInput, 0, sizeof(consoleInput) );
    consoleHeight = -(vidState.height / 2);
@@ -193,6 +202,7 @@ void Con_Init( void )
    CVar_Register( &clear_f );
    CVar_Register( &exit_f );
    CVar_Register( &dumpcv_f );
+   CVar_Register( &echo_f );
    Con_Printf( "console initialized.\n" );
 }
 

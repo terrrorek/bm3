@@ -2,17 +2,12 @@
 #include <common/bmstring.h>
 #include <game/console.h>
 #include <common/cmd.h>
-#include <net/net.h>
 #include <common/cvar.h>
 #include <game/eobj.h>
 #include <video/pic.h>
+#include <net/net.h>
 
 #include <SDL3/SDL.h>
-
-bool     isTrying = FALSE;
-uint     tries = 0;
-char     tryAddr[32];
-uint16_t tryPort;
 
 double   connectTime = 0.0;
 bool     gameLocal = FALSE;
@@ -57,10 +52,21 @@ static cvar_t _disconnect = {
    .function = (confunc_t) Game_Disconnect_f,
 };
 
+static void Game_ConnectLocal_f( void )
+{
+   Game_ConnectLocal( );
+}
+static cvar_t _con_local = {
+   .name = "con_local",
+   .flags = CVAR_FUNCTION,
+   .function = (confunc_t) Game_ConnectLocal_f
+};
+
 void Game_Init( void )
 {
    CVar_Register( &_connect );
    CVar_Register( &_disconnect );
+   CVar_Register( &_con_local );
 }
 
 void Game_Host( void )
@@ -73,63 +79,28 @@ void Game_EndHost( void )
    Net_EndHost( );
 }
 
-void Game_TryConnect( void )
-{
-   if( !isTrying )
-      return;
-
-   switch( isTrying )
-   {
-   case 1:
-      if( tries > 5 )
-      {
-         isTrying = FALSE;
-         tries = 0;
-         Con_Errorf( "failed to connect to %s:%i!\n", tryAddr, tryPort );
-         tryAddr[0] = '\0';
-         tryPort = 0;
-         return;
-      }
-
-      if(!Net_Connect( &gamesock, tryAddr, tryPort ))
-      {
-         Con_Printf( "again trying connect to %s:%i... (try %i)\n",
-            tryAddr, tryPort, 1 + tries++ );
-         return;
-      }
-      else
-      {
-         connectTime = (double) SDL_GetTicks( ) / 1000.0;
-         Con_Printf( "connected to %s:%i.\n", tryAddr, tryPort );
-         gameState = GS_GAME;
-         isTrying = FALSE;
-         Con_Printf( "waiting for acceptance...\n" );
-      }
-      break;
-   default: break;
-   }
-}
-
 void Game_Connect( const char* addr, uint16_t port )
 {
-   Net_DestroySocket( &gamesock );
-   Net_InitSocket( &gamesock );
-
-   isTrying = TRUE;
-   BM_strcpy( tryAddr, addr );
-   tryPort = port;
+   if( Net_Connect( &gamesock, addr, port ) )
+      gameState = GS_GAME;
 }
 
 void Game_ConnectLocal( void )
 {
+   double   wait = 0.0;
+
    gameLocal = TRUE;
+
    Game_Host( );
+   while( wait <= 0.5 ) wait += gameTime;
    Game_Connect( "127.0.0.1", 21371 );
 }
 
 void Game_Exit( void )
 {
+   if( gameLocal )
+      Game_EndHost( );
+
+   Net_Disconnect( &gamesock );
    gameState = GS_MENU;
-   Net_EndHost( );
-   Net_DestroySocket( &gamesock );
 }

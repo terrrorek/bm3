@@ -7,7 +7,8 @@
 // renderer, that tell it what it needs to draw.
 typedef struct emat_s
 {
-   uint  pic;
+   char     pic[32];
+   uint     pic_handle;
 }
 emat_t;
 

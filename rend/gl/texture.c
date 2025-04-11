@@ -235,7 +235,9 @@ void Rend_DrawPic( uint pic, int x, int y, int w, int h )
 
    tex = Rend_GetTexture( pic );
    if( !tex )
+   {
       return;
+   }
 
    Rend_DrawPicImpl( tex, x, y, w, h, 0, 0, w, h );
 }

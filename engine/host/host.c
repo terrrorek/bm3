@@ -12,7 +12,7 @@ void Host_Init( void )
 
 void Host_Update( void )
 {
-   if( gameState == GS_GAME )
+   if( gameState == GS_GAME && gameLocal )
       Ent_Process( false );
 
    Net_ServerLoop( );

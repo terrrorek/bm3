@@ -5,6 +5,7 @@
 #include <game/helpers.h>
 #include <client/input.h>
 #include <common/cmd.h>
+#include <common/bmstring.h>
 
 CLASS( player,
    vec3  velocity;
@@ -20,6 +21,8 @@ static void InputMove( player_t* this )
 CREATE( player,
    glm_vec3_zero( this->velocity );
    this->speed = 100.f;
+   glm_vec3_fill( this->obj->data.transform.scale, 64.f );
+   BM_strncpy( this->obj->mat.pic, "test/pic.tga", sizeof(this->obj->mat.pic) );
 )
 
 SPAWN( player )
@@ -28,11 +31,10 @@ SPAWN( player )
 }
 UPDATE( player )
 {
-   vec3  vels;
-
    if( client )
    {
       InputMove( this );
+      return;
    }
 
    glm_vec3_scale( this->velocity, gameTime, this->velocity );

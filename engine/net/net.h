@@ -2,9 +2,11 @@
 #define NET_H
 
 #include <common/common.h>
+#include <game/eobj.h>
 
 #ifdef _WIN32
    #include <WinSock2.h>
+   #include <WS2tcpip.h>
 
    #undef EWOULDBLOCK
    #define EWOULDBLOCK WSAEWOULDBLOCK
@@ -18,6 +20,7 @@
 #else
    #include <sys/socket.h>
    #include <netinet/in.h>
+   #include <arpa/inet.h>
 
    #define closesocket close
    #define BLOCK(s, x)\
@@ -51,6 +54,7 @@ typedef struct sockclient_s
 
    uint32_t             hash; // name hash
    char                 name[32];
+   eobj_t*              ent;
 
    struct sockaddr_in   address;
    bool                 closing;

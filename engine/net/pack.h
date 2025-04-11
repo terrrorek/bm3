@@ -2,6 +2,7 @@
 #define PACK_H
 
 #include <common/common.h>
+#include <game/eobj.h>
 
 typedef enum pack_type_e
 {
@@ -16,8 +17,18 @@ typedef struct packet_s
 {
    byte     type;
    uint32_t hash;
-   char     data[MAX_PACKET_SIZE];
+   byte     data[MAX_PACKET_SIZE];
 }
 packet_t;
+
+typedef struct ent_packet_s
+{
+   bool     valid;
+   edata_t  data;
+   emat_t   mat;
+   edecl_t  decl;
+   uint32_t player;
+}
+ent_packet_t;
 
 #endif

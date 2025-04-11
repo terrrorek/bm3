@@ -4,7 +4,22 @@
 #include <game/console.h>
 #include <net/msg.h>
 #include <game/state.h>
+#include <net/pack.h>
 #include <common/alloc.h>
+#include <game/eobj.h>
+#include <client/input.h>
+#include <game/edecl.h>
+#include <common/cvar.h>
+
+static sockclient_t* SNet_FindClientWithHash( bmsock_t* sock, uint32_t hash )
+{
+   int   i;
+
+   for( i = 0; i < MAX_CLIENTS; i++ )
+      if( sock->clients[i].hash == hash )
+         return &sock->clients[i];
+   return NULL;
+}
 
 static void SNet_BroadcastPlayers( bmsock_t* sock )
 {
@@ -46,7 +61,7 @@ void Net_Broadcast( sockclient_t* cl, const char* fmt, ... )
    vsnprintf( buf, len + 1, fmt, args );
    va_end( args );
 
-   Con_Printf( "%s\n", buf );
+   Con_Printf( "%s", buf );
    if( !cl->hash )
       return;
 
@@ -75,7 +90,7 @@ void Net_BroadcastAll( bmsock_t* sock, const char* fmt, ... )
    vsnprintf( buf, len + 1, fmt, args );
    va_end( args );
 
-   Con_Printf( "%s\n", buf );
+   Con_Printf( "%s", buf );
    for( i = 0; i < MAX_CLIENTS; i++ )
    {
       sockclient_t*  cl = &sock->clients[i];
@@ -103,7 +118,7 @@ static sockclient_t* SNet_FindEmptyClient( bmsock_t* sock )
    return NULL;
 }
 
-static void SNet_Disconnect( sockclient_t* cl, const char* message )
+static void SNet_Disconnect( bmsock_t* sock, sockclient_t* cl, const char* message )
 {
    if( message )
    {
@@ -111,13 +126,20 @@ static void SNet_Disconnect( sockclient_t* cl, const char* message )
       strcpy( (char*) msg.data, message );
       msg.type = MSGT_DISCONNECT;
       msg.hash = cl->hash;
-      send( cl->message, &msg, sizeof(msg), 0 );
+      send( cl->message, (char*) &msg, sizeof(msg), 0 );
    }
 
-   // todo: broadcast
-   Con_Printf( "%s disconnected.\n", cl->name );
+   if( cl->ent )
+   {
+      Ent_Destroy( cl->ent );
+      cl->ent = NULL;
+   }
+
+   Net_BroadcastAll( sock, "%s disconnected.\n", cl->name );
    cl->closing = TRUE;
 }
+
+extern cvar_t eng_rate;
 
 static void SNet_Listen( bmsock_t* sock )
 {
@@ -157,7 +179,6 @@ static void SNet_Listen( bmsock_t* sock )
    BLOCK( sock->message, block );
    WIPEOUT( msg );
    recv( cl, (char*) &msg, sizeof(msg), 0 );
-   Cmd_Printf( "%x\n", msg.hash );
 
    if( msg.data[31] != 0 )
    {
@@ -178,7 +199,18 @@ static void SNet_Listen( bmsock_t* sock )
    memcpy( cls->name, msg.data, 32 );
 
    send( cl, (char*) &msg, sizeof(msg), 0 );
-   Con_Printf( "%s connected.\n", cls->name );
+
+   WIPEOUT( msg );
+   msg.type = MSGT_INFO;
+   msg.hash = cls->hash;
+   *((int*)&msg.data[0]) = eng_rate.number;
+
+   Net_BroadcastAll( sock, "%s connected.\n", cls->name );
+
+   // spawn player
+   cls->ent = Ent_Create( "player" );
+   cls->ent->player = cls->hash;
+   BM_strncpy( cls->ent->data.name, cls->name, sizeof(cls->name) );
 
    return;
 dis:
@@ -193,14 +225,14 @@ static void SNet_ProcessMessage( bmsock_t* sock, sockclient_t* cl, msg_t* msg )
       return;
    if( msg->hash != cl->hash )
    {
-      SNet_Disconnect( cl, "message hash not equal to client hash!\n" );
+      SNet_Disconnect( sock, cl, "message hash not equal to client hash!\n" );
       return;
    }
 
    switch( msg->type )
    {
    case MSGT_DISCONNECT:
-      SNet_Disconnect( cl, NULL );
+      SNet_Disconnect( sock, cl, NULL );
       break;
    // not handled here / invalid messages
    default:
@@ -209,9 +241,103 @@ static void SNet_ProcessMessage( bmsock_t* sock, sockclient_t* cl, msg_t* msg )
    }
 }
 
+static void SNet_ConstructEntityPackets( packet_t** _packs, uint* _amount )
+{
+   const int   maxpack = MAX_PACKET_SIZE / sizeof(ent_packet_t);
+   int         amount = ceil(
+      (float)(Ent_Count( ) * sizeof(ent_packet_t)) / MAX_PACKET_SIZE);
+   packet_t*   packs;
+   int         i, j;
+
+   packs = Mem_Alloc( sizeof(packet_t) * amount );
+
+   for( i = 0; i < amount; i++ )
+   {
+      packs[i].type = PACK_ENTITY;
+      packs[i].hash = ~0;
+      WIPEOUT( packs[i].data );
+
+      for( j = 0; j < maxpack && (j * sizeof(ent_packet_t)) < MAX_PACKET_SIZE; j++ )
+      {
+         ent_packet_t*  pack =
+            (ent_packet_t*) &packs[i].data[j * sizeof(ent_packet_t)];
+         eobj_t*        ent = &eobjs[j + (maxpack * i)];
+
+         if( !ent->edecl )
+            continue;
+
+         pack->valid = TRUE;
+
+         pack->player = ent->player;
+         pack->data = ent->data;
+         pack->decl = *ent->edecl;
+         pack->mat = ent->mat;
+
+         pack->decl.spawn = 0;
+         pack->decl.update = 0;
+         pack->decl.kill = 0;
+         pack->decl.create = 0;
+      }
+   }
+
+   *_packs = packs;
+   *_amount = amount;
+}
+
 static void SNet_ProcessPackets( bmsock_t* sock )
 {
+   packet_t             pack;
+   packet_t*            ents;
+   uint                 entamount, i;
 
+   struct sockaddr_in   addr;
+   int                  len = sizeof(addr);
+   sockclient_t*        cl;
+
+   WIPEOUT( pack );
+   SNet_ConstructEntityPackets( &ents, &entamount );
+
+   if(recvfrom( sock->packet, (char*) &pack, sizeof(pack),
+         0, (struct sockaddr*) &addr, &len ) == EWOULDBLOCK)
+      return;
+   if( !pack.type || !pack.hash )
+      return;
+
+   cl = SNet_FindClientWithHash( sock, pack.hash );
+   if( !cl )
+   {
+      SNet_Disconnect( sock, cl, "invalid packet hash!\n" );
+      return;
+   }
+
+   switch( pack.type )
+   {
+   case PACK_MOVE:
+   {
+      /*
+         WARNING!!!!
+         VERY HACKY!!!!
+         FIND A BETTER WAY PLEASE
+      */
+      if( !pack.data[0] )
+         break;
+      memcpy( &inmove, &pack.data[1], sizeof(inmove) );
+      if( cl->ent )
+         cl->ent->edecl->update( cl->ent->clazz, true );
+      WIPEOUT( inmove );
+      break;
+   }
+   case PACK_ENTITY:
+   default: break;
+   }
+
+   for( i = 0; i < entamount; i++ )
+   {
+      sendto( sock->packet, (char*) &ents[i], sizeof(ents[i]), 0,
+         (struct sockaddr*) &addr, len );
+   }
+
+   Mem_Free( ents );
 }
 
 void Net_ServerLoop( void )
@@ -242,7 +368,7 @@ void Net_ServerLoop( void )
       }
 
       if(( result = recv( cl->message, (char*) &msg, sizeof(msg), 0 )) != EWOULDBLOCK )
-          SNet_ProcessMessage( &hostsock, cl, &msg );
+         SNet_ProcessMessage( &hostsock, cl, &msg );
    }
 
    SNet_ProcessPackets( &hostsock );

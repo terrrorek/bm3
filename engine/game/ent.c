@@ -68,7 +68,6 @@ static bool Ent_IsDeclared( const char* name )
 }
 
 // edecl
-
 edecl_t* Ent_DeclEnt( const char* name )
 {
    if( edeclCount >= MAX_EDECL )
@@ -108,6 +107,11 @@ edecl_t* Ent_GetDecl( const char* name )
 
 // eobj
 
+void Ent_Init( void )
+{
+   WIPEOUT( eobjs );
+}
+
 eobj_t* Ent_Create( const char* classname )
 {
    eobj_t* eobj = Ent_FindEmptyEnt( );
@@ -130,7 +134,7 @@ eobj_t* Ent_Create( const char* classname )
    }
 
    eobj->index = eobjCount - 1;
-   eobj->edecl->create( &eobj->clazz, (void*) eobj );
+   eobj->edecl->structure = eobj->edecl->create( &eobj->clazz, (void*) eobj );
 
    return eobj;
 }
@@ -159,10 +163,56 @@ void Ent_Update( eobj_t* ent, bool client )
       return;
    }
 
-
-   ent->interp = 0;
-   memcpy( &ent->lastdata, &ent->data, sizeof(edata_t) );
+   if( !client )
+   {
+      ent->interp = 0;
+      memcpy( &ent->lastdata, &ent->data, sizeof(edata_t) );
+      ent->updated = 0;
+   }
    ent->edecl->update( ent->clazz, client );
+}
+
+eobj_t* Ent_FindByPlayer( uint32_t hash )
+{
+   int   i;
+
+   for( i = 0; i < MAX_EOBJ; i++ )
+   {
+      if( eobjs[i].player == hash )
+         return &eobjs[i];
+   }
+   return NULL;
+}
+
+eobj_t* Ent_FindByName( const char* name )
+{
+   int   i;
+
+   for( i = 0; i < MAX_EOBJ; i++ )
+   {
+      if(!BM_strcmp( eobjs[i].data.name, name ))
+         return &eobjs[i];
+   }
+   return NULL;
+}
+
+void Ent_ClearNonUpdating( void )
+{
+   int   i;
+
+   for( i = 0; i < MAX_EOBJ; i++ )
+      if( eobjs[i].edecl && eobjs[i].updated > MAX_NONUPDATES )
+      {
+         Ent_Destroy( &eobjs[i] );
+      }
+}
+
+void Ent_UpdateNonUpdates( void )
+{
+   int   i;
+
+   for( i = 0; i < MAX_EOBJ; i++ )
+      eobjs[i].updated++;
 }
 
 bool Ent_Destroy( eobj_t* ent )
@@ -214,8 +264,8 @@ uint Ent_Count( void )
    return count;
 }
 
-extern double nowTime, lastUpdate;
 extern cvar_t eng_rate;
+double nowInterp = 0.0, lastInterp = 1.0;
 
 static void Ent_InterpolateTransform( eobj_t* ent, vec3* pos, vec3* rot, vec3* scale )
 {
@@ -237,7 +287,7 @@ static void Ent_InterpolateTransform( eobj_t* ent, vec3* pos, vec3* rot, vec3* s
       ent->data.transform.scale,
       ent->interp, *scale );
 
-   ent->interp = (nowTime - lastUpdate) * eng_rate.number;
+   ent->interp = (nowInterp - lastInterp) * eng_rate.number;
 }
 
 void Ent_Draw( void )
@@ -264,10 +314,13 @@ void Ent_Draw( void )
 
       Ent_InterpolateTransform( obj, &pos, &rot, &scale );
 
-      // TEMP: drawing flat sprites
-      if( obj->edecl && obj->mat.pic )
+      if( strlen( obj->mat.pic ) > 1 && !obj->mat.pic_handle )
       {
-         rendImports.Rend_DrawPic( obj->mat.pic,
+         obj->mat.pic_handle = R_LoadTexture( obj->mat.pic, 0 );
+      }
+      if( obj->edecl && obj->mat.pic_handle )
+      {
+         rendImports.Rend_DrawPic( obj->mat.pic_handle,
             pos[0], pos[1], scale[0], scale[1] );
       }
       ++i;

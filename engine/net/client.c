@@ -4,10 +4,15 @@
 #include <game/console.h>
 #include <common/bmstring.h>
 #include <net/msg.h>
+#include <client/input.h>
+#include <common/cvar.h>
 #include <net/pack.h>
 
 bool     cIsTrying = FALSE;
 int      cTries = 0;
+
+eobj_t*  player = NULL;
+extern double lastUpdate;
 
 bool Net_Connect( bmsock_t* sock, const char* addr, uint16_t port )
 {
@@ -19,7 +24,7 @@ bool Net_Connect( bmsock_t* sock, const char* addr, uint16_t port )
 
    msg_t                msg;
 
-   address.sin_addr.s_addr = inet_addr( addr );
+   inet_pton( AF_INET, addr, &address.sin_addr );
    address.sin_port = htons( port + 1 );
    address.sin_family = AF_INET;
 
@@ -55,7 +60,8 @@ bool Net_Connect( bmsock_t* sock, const char* addr, uint16_t port )
    }
 
    Con_Printf( "connected.\n" );
-   address.sin_addr.s_addr = inet_addr( addr );
+
+   inet_pton( AF_INET, addr, &address.sin_addr );
    address.sin_port = htons( port );
    address.sin_family = AF_INET;
    connect( sock->packet, (struct sockaddr*) &address, sizeof(address) );
@@ -83,7 +89,10 @@ void Net_Disconnect( bmsock_t* sock )
    sock->flags &=~ SOCK_CONNECTED;
    sock->address = 0;
    sock->port = 0;
+   player = NULL;
 }
+
+extern cvar_t eng_rate;
 
 static void CNet_ProcessMessage( bmsock_t* sock, msg_t* msg )
 {
@@ -96,8 +105,6 @@ static void CNet_ProcessMessage( bmsock_t* sock, msg_t* msg )
       return;
    }
 
-   Cmd_Printf( "msg: %i\n", msg->type );
-
    switch( msg->type )
    {
    case MSGT_DISCONNECT:
@@ -105,23 +112,116 @@ static void CNet_ProcessMessage( bmsock_t* sock, msg_t* msg )
       Net_Disconnect( &gamesock );
       break;
    case MSGT_BROADCAST:
-      Con_Printf( "broadcast: %s\n", msg->data );
+      Con_Printf( "%s", msg->data );
       break;
+   case MSGT_INFO:
+   {
+      int rate = *(int*) &msg->data[0];
+      eng_rate.number = rate;
+      break;
+   }
    case MSGT_CONNECT:
    default: break;
    }
 }
 
+static void CNet_UnpackEntities( packet_t* pack )
+{
+   const int   maxpack = MAX_PACKET_SIZE / sizeof(ent_packet_t);
+   int         i;
+
+   for( i = 0; i < maxpack; i++ )
+   {
+      ent_packet_t*  epack = (ent_packet_t*) &pack->data[i * sizeof(ent_packet_t)];
+      eobj_t*        obj;
+
+      if( !epack->valid )
+         continue;
+
+      if(!( obj = Ent_FindByPlayer(epack->player) ))
+      {
+         obj = Ent_Create( epack->decl.name );
+         obj->player = epack->player;
+
+         if( !obj )
+         {
+            Cmd_SoftErrorf( "failed to replicate new entity \"%s\"\n", epack->decl.name );
+            return;
+         }
+      }
+
+      obj->interp = 0.0;
+      obj->lastdata = obj->data;
+      obj->data = epack->data;
+      obj->player = epack->player;
+      obj->updated = 0;
+
+      if(BM_strcmp( obj->mat.pic, epack->mat.pic ))
+         obj->mat = epack->mat;
+
+      if( obj->player == Net_GetUserHash() )
+         player = obj;
+   }
+}
+
 static void CNet_ProcessPackets( bmsock_t* sock )
 {
-   packet_t packet;
+   static bool sent = FALSE;
+   static int  tries = 0, resent = 0;
+   packet_t    packet;
+   int         result;
 
-   if( recv( sock->packet, (char*) &packet, sizeof(packet), 0 ) == EWOULDBLOCK )
+   if( resent > 20 )
+   {
+      Con_Errorf( "lost connection to server.\n" );
+      Net_Disconnect( sock );
+   }
+
+   WIPEOUT( packet );
+   if( !sent )
+   {
+      packet.type = PACK_MOVE;
+      packet.hash = Net_GetUserHash( );
+      if( player )
+      {
+         packet.data[0] = 1;
+         memcpy( &packet.data[1], &inmove, sizeof(inmove) );
+      }
+
+      result = sendto( sock->packet, (char*) &packet, sizeof(packet), 0, NULL, NULL );
+      sent = TRUE;
+      if( tries++ > 5 )
+      {
+         sent = FALSE; // retry
+         resent++;
+      }
       return;
-   if( !packet.hash )
+   }
+
+   if(( result = recvfrom( sock->packet, (char*) &packet, sizeof(packet), 0, NULL, NULL )) == EWOULDBLOCK )
+   {
+      sent = FALSE;
+      resent++;
+      return;
+   }
+   if( !packet.type )
       return;
 
-   Cmd_Printf( "%i\n", packet.type );
+   switch( packet.type )
+   {
+   case PACK_ENTITY:
+   {
+      CNet_UnpackEntities( &packet );
+      break;
+   }
+   case PACK_MOVE:
+   default: break;
+   }
+
+   lastInterp = (double) SDL_GetTicks() / 1000.0;
+   sent = FALSE;
+   tries = 0;
+   resent = 0;
 }
 
 void Net_ClientLoop( void )

@@ -134,6 +134,7 @@ int main( int argc, char** argv )
 
    Con_Init( );
    Net_Init( );
+   Ent_Init( );
    Game_Init( );
 
    Cfg_Exec( "default.cfg" );
@@ -144,12 +145,13 @@ int main( int argc, char** argv )
    else
    {
       Game_Host( );
+      gameLocal = TRUE;
       gameState = GS_GAME;
    }
 
    while( !shouldExit )
    {
-      nowTime = (double) SDL_GetTicks( ) / 1000.0;
+      nowTime     = (double) SDL_GetTicks( ) / 1000.0;
       gameTime    = nowTime - lastUpdate;
       deltaTime   = nowTime - lastFrame;
 
@@ -162,6 +164,11 @@ int main( int argc, char** argv )
          if( !isDedicated )
             Client_Update( );
 
+         if( gameState == GS_GAME )
+         {
+            Ent_UpdateNonUpdates( );
+            Ent_ClearNonUpdating( );
+         }
          lastUpdate = nowTime;
       }
 
@@ -173,6 +180,11 @@ int main( int argc, char** argv )
          // drawing
          rendImports.Rend_Clear( true );
 
+         // local interpolation
+         if( gameLocal )
+            lastInterp = lastUpdate;
+         nowInterp = nowTime;
+
          switch( gameState )
          {
          case GS_GAME:
@@ -182,7 +194,6 @@ int main( int argc, char** argv )
             break;
          }
 
-         // console is independent from game updates
          Con_Process( );
          Con_Draw( );
          Vid_Draw( );

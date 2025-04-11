@@ -8,6 +8,7 @@ typedef enum msg_type_e
    MSGT_CONNECT = 1,
    MSGT_DISCONNECT,
    MSGT_BROADCAST,
+   MSGT_INFO,
 }
 msg_type_t;
 

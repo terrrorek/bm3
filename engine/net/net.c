@@ -2,12 +2,15 @@
 #include <common/cmd.h>
 #include <common/cvar.h>
 #include <common/bmstring.h>
+#include <game/console.h>
+#include <game/state.h>
 #include <3rdparty/blake2/blake2.h>
 
 bmsock_t          gamesock, hostsock;
 char              playername[32];
 
 static const char netkey[16] = "kolegabartek";
+static uint32_t   playerhash = 0;
 
 #ifdef _WIN32
 WSADATA wsa;
@@ -15,14 +18,21 @@ WSADATA wsa;
 
 uint32_t Net_GetUserHash( void )
 {
-   uint32_t x;
-   blake2s( &x, sizeof(x), playername, sizeof(playername), netkey, sizeof(netkey) );
-   return x;
+   if( !playerhash )
+      blake2s( &playerhash, sizeof(playerhash), playername, sizeof(playername), netkey, sizeof(netkey) );
+   return playerhash;
 }
 
 static void Net_Playername_f( const char* name )
 {
+   if( gameState == GS_GAME )
+   {
+      Con_Errorf( "you can't change your name while in-game!\n" );
+      return;
+   }
+
    BM_strncpy( playername, name, 32 );
+   playerhash = 0;
 }
 static cvar_t _playername = {
    .name = "playername",
@@ -91,7 +101,7 @@ void Net_Bind( bmsock_t* sock, const char* address, uint16_t port )
    int                  len = sizeof(addr);
    int                  result;
 
-   addr.sin_addr.s_addr = inet_addr( address );
+   inet_pton( AF_INET, address, &addr.sin_addr );
    addr.sin_port = htons( port );
    addr.sin_family = AF_INET;
 

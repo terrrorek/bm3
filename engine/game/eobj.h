@@ -12,9 +12,11 @@
 typedef struct edata_s
 {
    bool        spawned;
-   char        name[64];
+   char        name[32];
    transform_t transform;
 } edata_t;
+
+#define MAX_NONUPDATES 15
 
 // EOBJ's are the entities themselves.
 // They hold position data, clazz pointers, edecl pointers and stuff.
@@ -27,8 +29,9 @@ typedef struct eobj_s
    // go up. If the counter bypasses a certain value, the entity will be destroyed.
    byte        chances;
    uint        index;
-   byte        player;
+   uint32_t    player; // player hash
    emat_t      mat;
+   byte        updated;
 
    edata_t     data;
    edata_t     lastdata; // Data before update
@@ -40,8 +43,15 @@ typedef struct eobj_s
 #define MAX_EOBJ BIT(10)
 extern eobj_t eobjs[MAX_EOBJ];
 
+extern double nowInterp, lastInterp;
+
+void Ent_Init( void );
 eobj_t* Ent_Create( const char* classname );
 void Ent_Update( eobj_t* ent, bool client );
+eobj_t* Ent_FindByPlayer( uint32_t hash );
+eobj_t* Ent_FindByName( const char* name );
+void Ent_ClearNonUpdating( void );
+void Ent_UpdateNonUpdates( void );
 bool Ent_Destroy( eobj_t* ent );
 void Ent_DestroyAll( void );
 void Ent_Process( bool client );

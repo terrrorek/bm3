@@ -12,6 +12,8 @@
 double   connectTime = 0.0;
 bool     gameLocal = FALSE;
 
+extern eobj_t* player;
+
 static void Game_Connect_f( const char* address )
 {
    if( address == NULL )
@@ -34,7 +36,6 @@ static void Game_Connect_f( const char* address )
 
    BM_strcpy( addr, address );
    Game_Connect( addr, port );
-   gameLocal = FALSE;
 }
 static cvar_t _connect = {
    .name = "connect",
@@ -52,6 +53,25 @@ static cvar_t _disconnect = {
    .function = (confunc_t) Game_Disconnect_f,
 };
 
+static void Game_State_f( void )
+{
+   const char* str;
+
+   switch( gameState )
+   {
+   case GS_MENU: str = "Menu"; break;
+   case GS_GAME: str = "Game"; break;
+   default: str = "?";
+   }
+
+   Con_Printf( "%s\n", str );
+}
+static cvar_t _game_state = {
+   .name = "game_state",
+   .flags = CVAR_FUNCTION,
+   .function = (confunc_t) Game_State_f,
+};
+
 static void Game_ConnectLocal_f( void )
 {
    Game_ConnectLocal( );
@@ -67,6 +87,7 @@ void Game_Init( void )
    CVar_Register( &_connect );
    CVar_Register( &_disconnect );
    CVar_Register( &_con_local );
+   CVar_Register( &_game_state );
 }
 
 void Game_Host( void )
@@ -81,26 +102,22 @@ void Game_EndHost( void )
 
 void Game_Connect( const char* addr, uint16_t port )
 {
+   gameLocal = FALSE;
    if( Net_Connect( &gamesock, addr, port ) )
       gameState = GS_GAME;
 }
 
 void Game_ConnectLocal( void )
 {
-   double   wait = 0.0;
-
    gameLocal = TRUE;
-
-   Game_Host( );
-   while( wait <= 0.5 ) wait += gameTime;
-   Game_Connect( "127.0.0.1", 21371 );
+   gameState = GS_GAME;
+   player = Ent_Create( "player" );
 }
 
 void Game_Exit( void )
 {
-   if( gameLocal )
-      Game_EndHost( );
-
    Net_Disconnect( &gamesock );
+   Ent_DestroyAll( );
+   player = 0;
    gameState = GS_MENU;
 }

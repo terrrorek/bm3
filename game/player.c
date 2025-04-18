@@ -14,8 +14,8 @@ CLASS( player,
 
 static void InputMove( player_t* this )
 {
-   this->velocity[1] += (-inmove.forward) * this->speed;
-   this->velocity[0] += inmove.right * this->speed;
+   this->velocity[1] += (-inmove.forward) * this->speed * gameTime;
+   this->velocity[0] += inmove.right * this->speed * gameTime;
 }
 
 CREATE( player,
@@ -37,10 +37,15 @@ UPDATE( player )
       return;
    }
 
-   glm_vec3_scale( this->velocity, gameTime, this->velocity );
    glm_vec3_add( this->obj->data.transform.position,
       this->velocity, this->obj->data.transform.position );
-   glm_vec3_scale( this->velocity, 0.f, this->velocity );
+
+   float scale = 1.f - (20.f * gameTime);
+   if( scale < 0.0 ) scale = 0;
+
+   // Cmd_Printf( "%f\n", scale );
+   // Cmd_Printf( "%f %f %f\n", this->velocity[0], this->velocity[1], this->velocity[2] );
+   glm_vec3_scale( this->velocity, scale, this->velocity );
 }
 KILL( player )
 {

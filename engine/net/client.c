@@ -14,10 +14,10 @@ int      cTries = 0;
 eobj_t*  player = NULL;
 extern double lastUpdate;
 
+static double  lastPacket = 0.0, packetDelta = 0.0;
+
 bool Net_Connect( bmsock_t* sock, const char* addr, uint16_t port )
 {
-   static double        conTime = 0.0;
-
    int                  result;
    struct sockaddr_in   address;
    int                  len = sizeof(address), block = 0;
@@ -61,7 +61,8 @@ bool Net_Connect( bmsock_t* sock, const char* addr, uint16_t port )
 
    Con_Printf( "connected.\n" );
 
-   inet_pton( AF_INET, addr, &address.sin_addr );
+   inet_pton( AF_INET, addr, &sock->address );
+   address.sin_addr.s_addr = sock->address;
    address.sin_port = htons( port );
    address.sin_family = AF_INET;
    connect( sock->packet, (struct sockaddr*) &address, sizeof(address) );
@@ -86,9 +87,6 @@ void Net_Disconnect( bmsock_t* sock )
 
    Net_ResetSocket( sock );
 
-   sock->flags &=~ SOCK_CONNECTED;
-   sock->address = 0;
-   sock->port = 0;
    player = NULL;
 }
 
@@ -125,104 +123,129 @@ static void CNet_ProcessMessage( bmsock_t* sock, msg_t* msg )
    }
 }
 
-static void CNet_UnpackEntities( packet_t* pack )
-{
-   const int   maxpack = MAX_PACKET_SIZE / sizeof(ent_packet_t);
-   int         i;
+// static void CNet_UnpackEntities( bmsock_t* sock, packet_t* pack )
+// {
+//    const int   maxpack = MAX_PACKET_SIZE / sizeof(ent_packet_t);
+//    int         i, j;
 
-   for( i = 0; i < maxpack; i++ )
-   {
-      ent_packet_t*  epack = (ent_packet_t*) &pack->data[i * sizeof(ent_packet_t)];
-      eobj_t*        obj;
+//    for( i = 0; i < maxpack; i++ )
+//    {
+//       ent_packet_t*  epack = (ent_packet_t*) &pack->data[i * sizeof(ent_packet_t)];
+//       eobj_t*        obj;
 
-      if( !epack->valid )
-         continue;
+//       if( !epack->valid )
+//          continue;
 
-      if(!( obj = Ent_FindByPlayer(epack->player) ))
-      {
-         obj = Ent_Create( epack->decl.name );
-         obj->player = epack->player;
+//       obj = &eobjs[epack->index];
 
-         if( !obj )
-         {
-            Cmd_SoftErrorf( "failed to replicate new entity \"%s\"\n", epack->decl.name );
-            return;
-         }
-      }
+//       if( epack->index == (~0U) )
+//          continue;
 
-      obj->interp = 0.0;
-      obj->lastdata = obj->data;
-      obj->data = epack->data;
-      obj->player = epack->player;
-      obj->updated = 0;
+//       // create
+//       if( !obj->edecl || (obj->edecl && obj->id != epack->id) )
+//       {
+//          if( obj->edecl )
+//          {
+//             Cmd_Printf( "destroy invalid\n" );
+//             Ent_Destroy( obj );
+//          }
 
-      if(BM_strcmp( obj->mat.pic, epack->mat.pic ))
-         obj->mat = epack->mat;
+//          WIPEPTR( obj );
+//          obj->edecl = Ent_DeclEnt( epack->decl.name );
+//          if( !obj->edecl )
+//          {
+//             Con_Errorf( "failed to replicate entity (def \"%s\" not found)\n",
+//                epack->decl.name );
+//             Net_Disconnect( sock );
+//             return;
+//          }
 
-      if( obj->player == Net_GetUserHash() )
-         player = obj;
-   }
-}
+//          obj->edecl->structure = obj->edecl->create( &obj->clazz, obj );
+//       }
 
-static void CNet_ProcessPackets( bmsock_t* sock )
-{
-   static bool sent = FALSE;
-   static int  tries = 0, resent = 0;
-   packet_t    packet;
-   int         result;
+//       // update
+//       obj->lastdata = obj->data;
+//       obj->data = epack->data;
 
-   if( resent > 20 )
-   {
-      Con_Errorf( "lost connection to server.\n" );
-      Net_Disconnect( sock );
-   }
+//       obj->player = epack->player;
+//       obj->id = epack->id;
+//       obj->interp = 0.0;
 
-   WIPEOUT( packet );
-   if( !sent )
-   {
-      packet.type = PACK_MOVE;
-      packet.hash = Net_GetUserHash( );
-      if( player )
-      {
-         packet.data[0] = 1;
-         memcpy( &packet.data[1], &inmove, sizeof(inmove) );
-      }
+//       obj->chances = 0;
 
-      result = sendto( sock->packet, (char*) &packet, sizeof(packet), 0, NULL, NULL );
-      sent = TRUE;
-      if( tries++ > 5 )
-      {
-         sent = FALSE; // retry
-         resent++;
-      }
-      return;
-   }
+//       if(BM_strcmp( obj->mat.pic, epack->mat.pic ))
+//          obj->mat = epack->mat;
+//       if( obj->player == Net_GetUserHash() )
+//          player = obj;
+//    }
+// }
 
-   if(( result = recvfrom( sock->packet, (char*) &packet, sizeof(packet), 0, NULL, NULL )) == EWOULDBLOCK )
-   {
-      sent = FALSE;
-      resent++;
-      return;
-   }
-   if( !packet.type )
-      return;
+// static void CNet_ProcessPackets( bmsock_t* sock )
+// {
+//    static bool    sent = FALSE;
+//    static double  silence = 0.0;
 
-   switch( packet.type )
-   {
-   case PACK_ENTITY:
-   {
-      CNet_UnpackEntities( &packet );
-      break;
-   }
-   case PACK_MOVE:
-   default: break;
-   }
+//    packet_t    packet;
+//    int         result;
 
-   lastInterp = (double) SDL_GetTicks() / 1000.0;
-   sent = FALSE;
-   tries = 0;
-   resent = 0;
-}
+//    double      now;
+
+//    if( silence >= 10.0 )
+//    {
+//       silence = 0.0;
+//       sent = FALSE;
+
+//       Con_Errorf( "lost connection to the server.\n" );
+//       Net_Disconnect( sock );
+//       return;
+//    }
+
+//    now = SDL_GetTicks() / 1000.0;
+//    packetDelta = now - lastPacket;
+//    WIPEOUT( packet );
+
+//    if( !sent )
+//    {
+//       silence = 0.0;
+//       packet.type = PACK_MOVE;
+//       packet.hash = Net_GetUserHash( );
+//       if( player )
+//       {
+//          packet.data[0] = 1;
+//          memcpy( &packet.data[1], &inmove, sizeof(inmove) );
+//       }
+
+//       result = sendto( sock->packet, (char*) &packet, sizeof(packet), 0, NULL, NULL );
+//       sent = TRUE;
+//    }
+
+//    result = recvfrom( sock->packet, (char*) &packet, sizeof(packet), 0, NULL, NULL );
+//    sent = FALSE;
+//    WINERR;
+
+//    if( result && (result != EWOULDBLOCK && result != EMSGSIZE))
+//    {
+//       silence += gameTime;
+//       return;
+//    }
+
+//    if( !packet.type )
+//       return;
+
+//    switch( packet.type )
+//    {
+//    case PACK_ENTITY:
+//    {
+//       CNet_UnpackEntities( sock, &packet );
+//       break;
+//    }
+//    case PACK_MOVE:
+//    default: break;
+//    }
+
+//    lastPacket = SDL_GetTicks() / 1000.0;
+//    // Cmd_Printf( "%f\n", packetDelta );
+// }
 
 void Net_ClientLoop( void )
 {
@@ -238,5 +261,5 @@ void Net_ClientLoop( void )
    if(!( gamesock.flags & SOCK_CONNECTED ))
       return;
 
-   CNet_ProcessPackets( &gamesock );
+   // CNet_ProcessPackets( &gamesock );
 }

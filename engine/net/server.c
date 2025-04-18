@@ -120,14 +120,15 @@ static sockclient_t* SNet_FindEmptyClient( bmsock_t* sock )
 
 static void SNet_Disconnect( bmsock_t* sock, sockclient_t* cl, const char* message )
 {
+   msg_t msg;
+
+   msg.type = MSGT_DISCONNECT;
+   msg.hash = cl->hash;
+
    if( message )
-   {
-      msg_t msg;
-      strcpy( (char*) msg.data, message );
-      msg.type = MSGT_DISCONNECT;
-      msg.hash = cl->hash;
-      send( cl->message, (char*) &msg, sizeof(msg), 0 );
-   }
+      BM_strncpy( (char*) msg.data, message, sizeof(msg.data) );
+
+   send( cl->message, (char*) &msg, sizeof(msg), 0 );
 
    if( cl->ent )
    {
@@ -231,6 +232,9 @@ static void SNet_ProcessMessage( bmsock_t* sock, sockclient_t* cl, msg_t* msg )
 
    switch( msg->type )
    {
+   case MSGT_BROADCAST:
+      Net_BroadcastAll( sock, "%s says: %s\n", cl->name, msg->data );
+      break;
    case MSGT_DISCONNECT:
       SNet_Disconnect( sock, cl, NULL );
       break;
@@ -241,104 +245,106 @@ static void SNet_ProcessMessage( bmsock_t* sock, sockclient_t* cl, msg_t* msg )
    }
 }
 
-static void SNet_ConstructEntityPackets( packet_t** _packs, uint* _amount )
-{
-   const int   maxpack = MAX_PACKET_SIZE / sizeof(ent_packet_t);
-   int         amount = ceil(
-      (float)(Ent_Count( ) * sizeof(ent_packet_t)) / MAX_PACKET_SIZE);
-   packet_t*   packs;
-   int         i, j;
+// static void SNet_ConstructEntityPackets( packet_t** _packs, uint* _amount )
+// {
+//    const int   maxpack = MAX_PACKET_SIZE / sizeof(ent_packet_t);
+//    int         amount = ceil(
+//       (float)(Ent_Count( ) * sizeof(ent_packet_t)) / MAX_PACKET_SIZE);
+//    packet_t*   packs;
+//    int         i, j;
 
-   packs = Mem_Alloc( sizeof(packet_t) * amount );
+//    packs = Mem_Alloc( sizeof(packet_t) * amount );
 
-   for( i = 0; i < amount; i++ )
-   {
-      packs[i].type = PACK_ENTITY;
-      packs[i].hash = ~0;
-      WIPEOUT( packs[i].data );
+//    for( i = 0; i < amount; i++ )
+//    {
+//       packs[i].type = PACK_ENTITY;
+//       packs[i].hash = ~0;
+//       WIPEOUT( packs[i].data );
 
-      for( j = 0; j < maxpack && (j * sizeof(ent_packet_t)) < MAX_PACKET_SIZE; j++ )
-      {
-         ent_packet_t*  pack =
-            (ent_packet_t*) &packs[i].data[j * sizeof(ent_packet_t)];
-         eobj_t*        ent = &eobjs[j + (maxpack * i)];
+//       for( j = 0; j < maxpack && (j * sizeof(ent_packet_t)) < MAX_PACKET_SIZE; j++ )
+//       {
+//          ent_packet_t*  pack =
+//             (ent_packet_t*) &packs[i].data[j * sizeof(ent_packet_t)];
+//          eobj_t*        ent = &eobjs[j + (maxpack * i)];
 
-         if( !ent->edecl )
-            continue;
+//          if( !ent->edecl )
+//             continue;
 
-         pack->valid = TRUE;
+//          pack->valid = TRUE;
 
-         pack->player = ent->player;
-         pack->data = ent->data;
-         pack->decl = *ent->edecl;
-         pack->mat = ent->mat;
+//          pack->player = ent->player;
+//          pack->data = ent->data;
+//          pack->decl = *ent->edecl;
+//          pack->mat = ent->mat;
+//          pack->id = ent->id;
+//          pack->index = ent->index;
 
-         pack->decl.spawn = 0;
-         pack->decl.update = 0;
-         pack->decl.kill = 0;
-         pack->decl.create = 0;
-      }
-   }
+//          pack->decl.spawn = 0;
+//          pack->decl.update = 0;
+//          pack->decl.kill = 0;
+//          pack->decl.create = 0;
+//       }
+//    }
 
-   *_packs = packs;
-   *_amount = amount;
-}
+//    *_packs = packs;
+//    *_amount = amount;
+// }
 
-static void SNet_ProcessPackets( bmsock_t* sock )
-{
-   packet_t             pack;
-   packet_t*            ents;
-   uint                 entamount, i;
+// static void SNet_ProcessPackets( bmsock_t* sock )
+// {
+//    packet_t             pack;
+//    packet_t*            ents;
+//    uint                 entamount, i;
 
-   struct sockaddr_in   addr;
-   int                  len = sizeof(addr);
-   sockclient_t*        cl;
+//    struct sockaddr_in   addr;
+//    int                  len = sizeof(addr);
+//    sockclient_t*        cl;
 
-   WIPEOUT( pack );
-   SNet_ConstructEntityPackets( &ents, &entamount );
+//    WIPEOUT( pack );
+//    SNet_ConstructEntityPackets( &ents, &entamount );
 
-   if(recvfrom( sock->packet, (char*) &pack, sizeof(pack),
-         0, (struct sockaddr*) &addr, &len ) == EWOULDBLOCK)
-      return;
-   if( !pack.type || !pack.hash )
-      return;
+//    if(recvfrom( sock->packet, (char*) &pack, sizeof(pack),
+//          0, (struct sockaddr*) &addr, &len ) == EWOULDBLOCK)
+//       return;
+//    if( !pack.type || !pack.hash )
+//       return;
 
-   cl = SNet_FindClientWithHash( sock, pack.hash );
-   if( !cl )
-   {
-      SNet_Disconnect( sock, cl, "invalid packet hash!\n" );
-      return;
-   }
+//    cl = SNet_FindClientWithHash( sock, pack.hash );
+//    if( !cl )
+//    {
+//       SNet_Disconnect( sock, cl, "invalid packet hash!\n" );
+//       return;
+//    }
 
-   switch( pack.type )
-   {
-   case PACK_MOVE:
-   {
-      /*
-         WARNING!!!!
-         VERY HACKY!!!!
-         FIND A BETTER WAY PLEASE
-      */
-      if( !pack.data[0] )
-         break;
-      memcpy( &inmove, &pack.data[1], sizeof(inmove) );
-      if( cl->ent )
-         cl->ent->edecl->update( cl->ent->clazz, true );
-      WIPEOUT( inmove );
-      break;
-   }
-   case PACK_ENTITY:
-   default: break;
-   }
+//    switch( pack.type )
+//    {
+//    case PACK_MOVE:
+//    {
+//       /*
+//          WARNING!!!!
+//          VERY HACKY!!!!
+//          FIND A BETTER WAY PLEASE
+//       */
+//       if( !pack.data[0] )
+//          break;
+//       memcpy( &inmove, &pack.data[1], sizeof(inmove) );
+//       if( cl->ent )
+//          cl->ent->edecl->update( cl->ent->clazz, true );
+//       WIPEOUT( inmove );
+//       break;
+//    }
+//    case PACK_ENTITY:
+//    default: break;
+//    }
 
-   for( i = 0; i < entamount; i++ )
-   {
-      sendto( sock->packet, (char*) &ents[i], sizeof(ents[i]), 0,
-         (struct sockaddr*) &addr, len );
-   }
+//    for( i = 0; i < entamount; i++ )
+//    {
+//       sendto( sock->packet, (char*) &ents[i], sizeof(ents[i]), 0,
+//          (struct sockaddr*) &addr, len );
+//    }
 
-   Mem_Free( ents );
-}
+//    Mem_Free( ents );
+// }
 
 void Net_ServerLoop( void )
 {
@@ -369,7 +375,7 @@ void Net_ServerLoop( void )
 
       if(( result = recv( cl->message, (char*) &msg, sizeof(msg), 0 )) != EWOULDBLOCK )
          SNet_ProcessMessage( &hostsock, cl, &msg );
-   }
 
-   SNet_ProcessPackets( &hostsock );
+      // SNet_ProcessPackets( &hostsock );
+   }
 }

@@ -4,6 +4,7 @@
 #include <game/dll.h>
 #include <common/bmstring.h>
 #include <common/cmd.h>
+#include <time.h>
 #undef bool
 
 static int edeclCount = 0;
@@ -81,6 +82,11 @@ edecl_t* Ent_DeclEnt( const char* name )
       return NULL;
    }
 
+   // check for already existing
+   for( int i = 0; i < MAX_EDECL; i++ )
+      if( !BM_strcmp(edecls[i].name, name) )
+         return &edecls[i];
+
    edecl_t* edecl = &edecls[edeclCount++];
    WIPEPTR( edecl );
    BM_strncpy( edecl->name, name, sizeof(edecl->name) );
@@ -133,8 +139,11 @@ eobj_t* Ent_Create( const char* classname )
       Cmd_Errorf( "ent creation failed (edecl \"%s\" not found)\n", classname );
    }
 
-   eobj->index = eobjCount - 1;
+   eobj->index = ++eobjCount - 1;
    eobj->edecl->structure = eobj->edecl->create( &eobj->clazz, (void*) eobj );
+
+   srand( time(NULL) );
+   eobj->id = rand() | (rand() << 16) | (rand() ^ rand());
 
    return eobj;
 }
@@ -167,7 +176,6 @@ void Ent_Update( eobj_t* ent, bool client )
    {
       ent->interp = 0;
       memcpy( &ent->lastdata, &ent->data, sizeof(edata_t) );
-      ent->updated = 0;
    }
    ent->edecl->update( ent->clazz, client );
 }
@@ -194,25 +202,6 @@ eobj_t* Ent_FindByName( const char* name )
          return &eobjs[i];
    }
    return NULL;
-}
-
-void Ent_ClearNonUpdating( void )
-{
-   int   i;
-
-   for( i = 0; i < MAX_EOBJ; i++ )
-      if( eobjs[i].edecl && eobjs[i].updated > MAX_NONUPDATES )
-      {
-         Ent_Destroy( &eobjs[i] );
-      }
-}
-
-void Ent_UpdateNonUpdates( void )
-{
-   int   i;
-
-   for( i = 0; i < MAX_EOBJ; i++ )
-      eobjs[i].updated++;
 }
 
 bool Ent_Destroy( eobj_t* ent )
@@ -318,7 +307,7 @@ void Ent_Draw( void )
       {
          obj->mat.pic_handle = R_LoadTexture( obj->mat.pic, 0 );
       }
-      if( obj->edecl && obj->mat.pic_handle )
+      if( obj->mat.pic_handle )
       {
          rendImports.Rend_DrawPic( obj->mat.pic_handle,
             pos[0], pos[1], scale[0], scale[1] );

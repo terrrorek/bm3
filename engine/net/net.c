@@ -5,6 +5,7 @@
 #include <game/console.h>
 #include <game/state.h>
 #include <3rdparty/blake2/blake2.h>
+#include <net/msg.h>
 
 bmsock_t          gamesock, hostsock;
 char              playername[32];
@@ -40,6 +41,24 @@ static cvar_t _playername = {
    .function = Net_Playername_f
 };
 
+static void Net_Say_f( const char* message )
+{
+   if( gameLocal || !(gamesock.flags & SOCK_CONNECTED) )
+      return;
+
+   msg_t msg;
+   msg.hash = Net_GetUserHash( );
+   msg.type = MSGT_BROADCAST;
+   BM_strncpy( (char*)msg.data, message, 512 );
+
+   send( gamesock.message, (char*) &msg, sizeof(msg), 0 );
+}
+static cvar_t _say = {
+   .name = "say",
+   .flags = CVAR_FUNCTION,
+   .function = (confunc_t) Net_Say_f,
+};
+
 void Net_Init( void )
 {
    #ifdef _WIN32
@@ -47,6 +66,7 @@ void Net_Init( void )
    #endif
 
    CVar_Register( &_playername );
+   CVar_Register( &_say );
 
    Net_InitSocket( &gamesock );
    Net_InitSocket( &hostsock );

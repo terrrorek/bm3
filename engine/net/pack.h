@@ -24,6 +24,8 @@ packet_t;
 typedef struct ent_packet_s
 {
    bool     valid;
+   uint64_t id;
+   uint     index;
    edata_t  data;
    emat_t   mat;
    edecl_t  decl;

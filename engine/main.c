@@ -164,11 +164,6 @@ int main( int argc, char** argv )
          if( !isDedicated )
             Client_Update( );
 
-         if( gameState == GS_GAME )
-         {
-            Ent_UpdateNonUpdates( );
-            Ent_ClearNonUpdating( );
-         }
          lastUpdate = nowTime;
       }
 
@@ -213,7 +208,6 @@ int main( int argc, char** argv )
          putc( lastKey, stdout );
          Con_Process( );
       }
-
    }
 
    // Mem_Print( );

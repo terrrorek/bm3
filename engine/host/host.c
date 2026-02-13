@@ -7,7 +7,6 @@
 
 void Host_Init( void )
 {
-
 }
 
 void Host_Update( void )
@@ -15,10 +14,10 @@ void Host_Update( void )
    if( gameState == GS_GAME && gameLocal )
       Ent_Process( false );
 
-   Net_ServerLoop( );
+   if( net_server.bound )
+      SNet_Update();
 }
 
 void Host_Quit( void )
 {
-   Net_EndHost( );
 }

@@ -20,12 +20,12 @@ typedef struct transform_s
 }
 transform_t;
 
-inline float BM_lerp(float a, float b, float f)
+static inline float BM_lerp(float a, float b, float f)
 {
     return a * (1.0 - f) + (b * f);
 }
 
-inline float BM_clamp(float x, float min, float max)
+static inline float BM_clamp(float x, float min, float max)
 {
    if( x < min )
       return min;

@@ -2,105 +2,86 @@
 #define NET_H
 
 #include <common/common.h>
-#include <game/eobj.h>
+#include <common/cmd.h>
 
 #ifdef _WIN32
-   #include <WinSock2.h>
-   #include <WS2tcpip.h>
-
-   #undef EWOULDBLOCK
-   #define EWOULDBLOCK WSAEWOULDBLOCK
-   #undef EMSGSIZE
-   #define EMSGSIZE WSAEMSGSIZE
-   #undef EINPROGRESS
-   #define EINPROGRESS WSAEINPROGRESS
-
-   #define BLOCK(s, x)\
-      ioctlsocket( s, FIONBIO, (u_long*) &x )
+#  define WIN32_LEAN_AND_MEAN
+#  include <WinSock2.h>
+#  include <ws2tcpip.h>
 #else
-   #include <sys/socket.h>
-   #include <netinet/in.h>
-   #include <arpa/inet.h>
-
-   #define closesocket close
-   #define BLOCK(s, x)\
-      if( x )\
-         fcntl( s, F_SETFL, fcntl(s, F_GETFL) | O_NONBLOCK );\
-      else\
-         fcntl( s, F_SETFL, fcntl(s, F_GETFL) & (~O_NONBLOCK) )
+#  include <sys/socket.h>
+#  include <netinet/in.h>
+#  include <arpa/inet.h>
 #endif
 
-#define MAX_CLIENTS 16
+typedef struct sockaddr_in
+   addr_t;
+
+typedef struct sockcl_s
+{
+   char     name[32];
+   uint32_t hash;
+   addr_t   address;
+   float    last_packet;
+}
+sockcl_t;
+
+typedef struct sock_s
+{
+   size_t   handle;
+   bool     bound;
+}
+sock_t;
 
 #ifdef _WIN32
 #define WINERR\
    result = WSAGetLastError( )
-#else
-#define WINERR
+#undef EWOULDBLOCK
+#undef EMSGSIZE
+#define EWOULDBLOCK WSAEWOULDBLOCK
+#define EMSGSIZE WSAEMSGSIZE
 #endif
 
-typedef uintptr_t sockhandle_t;
+#define Net_Reset( sock )\
+   Net_Close( sock ); Net_Open( sock )
 
-typedef enum sock_flags_e
+inline addr_t Net_MakeAddress( const char* addr, uint16_t port )
 {
-   SOCK_CONNECTED    = 0x1,
-   SOCK_BOUND        = 0x2
+   addr_t address;
+   address.sin_family = AF_INET;
+   address.sin_port = htons( port );
+   inet_pton( AF_INET, addr, &address.sin_addr.s_addr );
+   return address;
 }
-sock_flags_t;
 
-typedef struct sockclient_s
-{
-   sockhandle_t         message;
+void     Net_Init( void );
+void     Net_Quit( void );
 
-   uint32_t             hash; // name hash
-   char                 name[32];
-   eobj_t*              ent;
-
-   struct sockaddr_in   address;
-   bool                 closing;
-}
-sockclient_t;
-
-typedef struct bmsock_s
-{
-   sockhandle_t   packet, message;
-   sock_flags_t   flags;
-   sockclient_t   clients[MAX_CLIENTS];
-
-   uint32_t       address;
-   uint16_t       port;
-}
-bmsock_t;
-
-extern char       playername[32];
-extern bmsock_t   gamesock, hostsock;
+void     Net_Open( sock_t* sock );
+int      Net_Send( sock_t* sock, void* data, size_t size, addr_t* addr );
+int      Net_Receive( sock_t* sock, void* data, size_t size, addr_t* addr );
+void     Net_Bind( sock_t* sock, addr_t* addr );
+void     Net_Close( sock_t* sock );
 
 uint32_t Net_GetUserHash( void );
 
-void Net_Init( void );
-void Net_Quit( void );
-
-void Net_Host( void );
-void Net_EndHost( void );
-
-void Net_InitSocket( bmsock_t* sock );
-void Net_QuitSocket( bmsock_t* sock );
-#define Net_ResetSocket( sock )\
-   Net_QuitSocket( sock ); Net_InitSocket( sock )
-
-void Net_ClientLoop( void );
-void Net_ServerLoop( void );
-
-void Net_Bind( bmsock_t* sock, const char* addr, uint16_t port );
+// server
+void     SNet_Host( void );
+void     SNet_Update( void );
+void     SNet_EndHost( void );
 
 // client
+int      CNet_Connect( addr_t* addr );
+void     CNet_Update( void );
+void     CNet_Disconnect( void );
 
-bool Net_Connect( bmsock_t* sock, const char* addr, uint16_t port );
-void Net_Disconnect( bmsock_t* sock );
+#define MAX_PLAYERS 4
+#define MAX_PLAYERNAME 32
 
-// server
+extern   sock_t   net_client, net_server;
+extern   char     playername[MAX_PLAYERNAME];
 
-void Net_Broadcast( sockclient_t* cl, const char* fmt, ... );
-void Net_BroadcastAll( bmsock_t* sock, const char* fmt, ... );
+extern   sockcl_t net_serverclients[MAX_PLAYERS];
+extern   addr_t   net_serveraddress;
 
 #endif

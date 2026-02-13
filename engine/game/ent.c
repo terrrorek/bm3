@@ -279,6 +279,8 @@ static void Ent_InterpolateTransform( eobj_t* ent, vec3* pos, vec3* rot, vec3* s
    ent->interp = (nowInterp - lastInterp) * eng_rate.number;
 }
 
+extern int conFont;
+
 void Ent_Draw( void )
 {
    uint     i = 0;
@@ -311,6 +313,19 @@ void Ent_Draw( void )
       {
          rendImports.Rend_DrawPic( obj->mat.pic_handle,
             pos[0], pos[1], scale[0], scale[1] );
+      }
+
+      if( strlen( obj->data.name ) > 1 )
+      {
+         int   x = obj->data.transform.position[0], y = obj->data.transform.position[1] - 14;
+         char* ptr = obj->data.name;
+
+         while( *ptr )
+         {
+            rendImports.Rend_DrawChar( conFont, *ptr, x, y, 7, 9 );
+            x += 8;
+            ++ptr;
+         }
       }
       ++i;
    }

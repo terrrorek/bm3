@@ -34,7 +34,7 @@ UPDATE( player )
    if( client )
    {
       InputMove( this );
-      return;
+      // return;
    }
 
    glm_vec3_add( this->obj->data.transform.position,

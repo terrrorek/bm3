@@ -72,7 +72,8 @@ if os.name == 'nt':
 elif os.name == 'posix':
    env['STATIC_AND_SHARED_OBJECTS_ARE_THE_SAME'] = 1
    global_cflags += ['-Wall', '-Wextra', '-pedantic']
-   global_ldflags.append( '-m32' )
+   global_ldflags += ['-rdynamic']
+   # global_ldflags.append( '-m32' )
 
 class Subproject:
    folder: str
@@ -173,7 +174,7 @@ TASKS = [
    Subproject('rend/gl', '*.c', gl_files, dll_cflags),
    Subproject('rend/soft', '*.c', soft_files, dll_cflags),
 
-   Subproject('game', '*.c', obj_files),
+   Subproject('game', '*.c', obj_files, dll_cflags),
 ]
 
 for task in TASKS:

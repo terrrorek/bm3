@@ -25,7 +25,7 @@ void Rend_LoadRenderer( const char* name )
       rendHandle = LoadLibrary( nameBuffer );
    #elif defined( __linux__ )
       BM_snprintf( nameBuffer, sizeof(nameBuffer), "./librend_%s." GAME_EXT, name );
-      rendHandle = dlopen( nameBuffer, RTLD_GLOBAL );
+      rendHandle = dlopen( nameBuffer, RTLD_NOW | RTLD_GLOBAL );
    #endif
 
    if( !rendHandle )

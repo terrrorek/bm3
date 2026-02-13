@@ -37,8 +37,8 @@ void Cfg_Exec( const char* path )
       if( !*ptr ) break;
 
       len = ptr - 1 - last;
-      line = Mem_Alloc( len + 1 );
-      memset( line, 0, len + 1 );
+      line = Mem_Alloc( len + 2 );
+      memset( line, 0, len + 2 );
       BM_strncpy( line, last, len );
       Con_Execute( line );
       Mem_Free( line );

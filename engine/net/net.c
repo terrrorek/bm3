@@ -1,39 +1,27 @@
 #include <net/net.h>
-#include <common/cmd.h>
-#include <common/cvar.h>
 #include <common/bmstring.h>
+#include <common/cvar.h>
 #include <game/console.h>
-#include <game/state.h>
 #include <3rdparty/blake2/blake2.h>
-#include <net/msg.h>
-
-bmsock_t          gamesock, hostsock;
-char              playername[32];
-
-static const char netkey[16] = "kolegabartek";
-static uint32_t   playerhash = 0;
 
 #ifdef _WIN32
-WSADATA wsa;
+static WSADATA wsaData;
 #endif
 
-uint32_t Net_GetUserHash( void )
-{
-   if( !playerhash )
-      blake2s( &playerhash, sizeof(playerhash), playername, sizeof(playername), netkey, sizeof(netkey) );
-   return playerhash;
-}
+char     playername[MAX_PLAYERNAME];
+sock_t   net_client, net_server;
+
+static byte       playerKey[16] = "bartusmastus";
+static uint32_t   playerHash = 0;
 
 static void Net_Playername_f( const char* name )
 {
-   if( gameState == GS_GAME )
-   {
-      Con_Errorf( "you can't change your name while in-game!\n" );
+   if( !name )
       return;
-   }
-
-   BM_strncpy( playername, name, 32 );
-   playerhash = 0;
+   if( strnlen( name, MAX_PLAYERNAME ) >= MAX_PLAYERNAME )
+      Con_Printf( "can't set playername: name too long. cropping. (max length %i)\n", MAX_PLAYERNAME );
+   BM_strncpy( playername, name, MAX_PLAYERNAME );
+   playerHash = 0;
 }
 static cvar_t _playername = {
    .name = "playername",
@@ -41,120 +29,92 @@ static cvar_t _playername = {
    .function = Net_Playername_f
 };
 
-static void Net_Say_f( const char* message )
+uint32_t Net_GetUserHash( void )
 {
-   if( gameLocal || !(gamesock.flags & SOCK_CONNECTED) )
-      return;
-
-   msg_t msg;
-   msg.hash = Net_GetUserHash( );
-   msg.type = MSGT_BROADCAST;
-   BM_strncpy( (char*)msg.data, message, 512 );
-
-   send( gamesock.message, (char*) &msg, sizeof(msg), 0 );
+   if( !playerHash )
+   {
+      blake2s( &playerHash, sizeof(playerHash),
+            playername, sizeof(playername),
+            playerKey,  sizeof(playerKey) );
+   }
+   return playerHash;
 }
-static cvar_t _say = {
-   .name = "say",
-   .flags = CVAR_FUNCTION,
-   .function = (confunc_t) Net_Say_f,
-};
 
 void Net_Init( void )
 {
    #ifdef _WIN32
-   WSAStartup( 2, &wsa );
+   WSAStartup( MAKEWORD(2,0), &wsaData );
    #endif
 
    CVar_Register( &_playername );
-   CVar_Register( &_say );
 
-   Net_InitSocket( &gamesock );
-   Net_InitSocket( &hostsock );
+   WIPEOUT( net_client );
+   WIPEOUT( net_server );
+
+   Net_Open( &net_client );
+   Net_Open( &net_server );
 }
 
 void Net_Quit( void )
 {
-   Net_QuitSocket( &gamesock );
-   Net_QuitSocket( &hostsock );
+   Net_Close( &net_client );
+   Net_Close( &net_server );
 }
 
-void Net_InitSocket( bmsock_t* sock )
+void     Net_Open( sock_t* sock )
 {
+   WIPEPTR( sock );
+   int type = SOCK_DGRAM;
+
    #ifndef _WIN32
-   int flags = SOCK_NONBLOCK;
-   #else
-   int flags = 0;
+   type |= SOCK_NONBLOCK;
    #endif
 
-   WIPEPTR( sock );
-
-   if(( sock->packet = socket( AF_INET, SOCK_DGRAM | flags, IPPROTO_UDP )) == 0 )
+   sock->handle = socket( AF_INET, type, IPPROTO_UDP );
+   if( !sock->handle )
    {
-      Cmd_Errorf( "failed to init socket! (packet failure).\n" );
-   }
-
-   if(( sock->message = socket( AF_INET, SOCK_STREAM | flags, IPPROTO_TCP )) == 0 )
-   {
-      Cmd_Errorf( "failed to init socket! (message failure).\n" );
+      Cmd_SoftErrorf( "failed to create socket" );
+      return;
    }
 
    #ifdef _WIN32
-   flags = 1;
-   BLOCK( sock->packet, flags );
-   BLOCK( sock->message, flags );
+   u_long mode = 1;
+   ioctlsocket( sock->handle, FIONBIO, &mode );
    #endif
 }
 
-void Net_QuitSocket( bmsock_t* sock )
+int      Net_Send( sock_t* sock, void* data, size_t size, addr_t* addr )
 {
-   if( sock->packet )
-      closesocket( sock->packet );
-   if( sock->message )
-      closesocket( sock->message );
+   int result = sendto( sock->handle, (char*) data, size, 0, (struct sockaddr*) addr, sizeof(addr_t) );
+   return result;
+}
 
+int      Net_Receive( sock_t* sock, void* data, size_t size, addr_t* addr )
+{
+   int fromlen = sizeof(addr_t);
+   int result = recvfrom( sock->handle, (char*) data, size, 0, (struct sockaddr*) addr, &fromlen );
+   return result;
+}
+
+void     Net_Bind( sock_t* sock, addr_t* addr )
+{
+   int   result;
+
+   sock->bound = TRUE;
+   result = bind( sock->handle, (struct sockaddr*) addr, sizeof(addr_t) );
+   if( result != 0 )
+   {
+      WINERR;
+      Cmd_SoftErrorf( "failed to bind socket" );
+   }
+}
+
+void     Net_Close( sock_t* sock )
+{
+   #ifdef _WIN32
+   closesocket( sock->handle );
+   #else
+   close( sock->handle );
+   #endif
    WIPEPTR( sock );
-}
-
-void Net_Bind( bmsock_t* sock, const char* address, uint16_t port )
-{
-   struct sockaddr_in   addr;
-   int                  len = sizeof(addr);
-   int                  result;
-
-   inet_pton( AF_INET, address, &addr.sin_addr );
-   addr.sin_port = htons( port );
-   addr.sin_family = AF_INET;
-
-   result = bind( sock->packet, (struct sockaddr*) &addr, len );
-   if( result != 0 )
-   {
-      WINERR;
-      Cmd_SoftErrorf( "failed to bind packet socket. (%i)\n", result );
-      return;
-   }
-
-   addr.sin_port = htons( port + 1 );
-
-   result = bind( sock->message, (struct sockaddr*) &addr, len );
-   if( result != 0 )
-   {
-      WINERR;
-      Cmd_SoftErrorf( "failed to bind message socket. (%i)\n", result );
-      return;
-   }
-
-   sock->flags |= SOCK_BOUND;
-   sock->address = addr.sin_addr.s_addr;
-   sock->port = port;
-}
-
-void Net_Host( void )
-{
-   Net_ResetSocket( &hostsock );
-   Net_Bind( &hostsock, "0.0.0.0", 21371 );
-}
-
-void Net_EndHost( void )
-{
-   Net_ResetSocket( &hostsock );
 }

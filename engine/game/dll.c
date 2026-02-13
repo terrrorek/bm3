@@ -53,9 +53,9 @@ void* Game_GetEngineHandle( void )
 {
    void* gm;
 
-   gm = dlopen( "bm", RTLD_NOW | RTLD_GLOBAL );
+   gm = dlopen( 0, RTLD_NOW | RTLD_GLOBAL );
    if( !gm )
-      Cmd_Error( "failed to load engine as dl\n" );
+      Cmd_Errorf( "failed to load engine as dl (%s)\n", dlerror() );
 
    return gm;
 }

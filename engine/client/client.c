@@ -21,10 +21,10 @@ void Client_Update( void )
    if( gameState == GS_GAME )
       Ent_Process( true );
 
-   Net_ClientLoop( );
+   CNet_Update();
 }
 
 void Client_Quit( void )
 {
-   Net_Disconnect( &gamesock );
+   CNet_Disconnect( );
 }

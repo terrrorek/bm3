@@ -2,6 +2,7 @@
 #include <common/alloc.h>
 #include <game/console.h>
 #include <common/cmd.h>
+#include <common/args.h>
 #include <client/input.h>
 #include <video/rend.h>
 #include <video/pic.h>
@@ -62,6 +63,17 @@ void Con_Clear_f( void )
 void Con_Echo_f( const char* msg )
 {
    Con_Printf( "%s\n", msg );
+}
+
+void Con_ExecCommandLine( void )
+{
+   int   i;
+
+   for( i = 0; i < ArgCount; i++ )
+   {
+      if( ArgStrings[i][0] == '+' && strlen(ArgStrings[i]) > 1 )
+         Con_Execute( &ArgStrings[i][1] );
+   }
 }
 
 void Con_Execute( const char* buf )
@@ -152,7 +164,12 @@ void Con_Printf( const char* fmt, ... )
       return;
    }
 
-   buf = Mem_Alloc( length + 1 );
+   #ifndef _WIN32
+   va_end( args );
+   va_start( args, fmt );
+   #endif
+
+   buf = Mem_Alloc( length + 2 );
    vsnprintf( buf, length + 1, fmt, args );
 
    va_end( args );

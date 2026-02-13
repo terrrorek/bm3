@@ -16,6 +16,7 @@
 #include <game/state.h>
 #include <net/net.h>
 #include <game/cfg.h>
+#include <net/bitfield.h>
 
 #include <signal.h>
 #ifdef _WIN32
@@ -58,18 +59,18 @@ static uint64_t CalibrateCpuFreq( void )
    uint64_t cpuFreq = 0;
 
    #ifdef _WIN32
-   uint32_t* lowb = (uint32_t*) &cpuFreq;
-   uint32_t* highb = (uint32_t*)((uintptr_t)&cpuFreq + sizeof(uint32_t));
-   __asm
-   {
-      pusha
-      mov ebx, lowb
-      mov ecx, highb
-      rdtsc
-      mov [ebx], eax
-      mov [ecx], edx
-      popa
-   }
+   // uint32_t* lowb = (uint32_t*) &cpuFreq;
+   // uint32_t* highb = (uint32_t*)((uintptr_t)&cpuFreq + sizeof(uint32_t));
+   // __asm
+   // {
+   //    pusha
+   //    mov ebx, lowb
+   //    mov ecx, highb
+   //    rdtsc
+   //    mov [ebx], eax
+   //    mov [ecx], edx
+   //    popa
+   // }
    #elif !defined(__ARM_ARCH)
    uint32_t* lowb = (uint32_t*) &cpuFreq;
    uint32_t* highb = (uint32_t*)((uintptr_t)&cpuFreq + sizeof(uint32_t));
@@ -95,10 +96,45 @@ static void CalculateSecondCycles( void )
    Cmd_Debugf( "second dur: %llu\n", end - begin );
 }
 
+#ifndef _WIN32
+#include <sys/select.h>
+#include <sys/ioctl.h>
+#include <termios.h>
+
+int _kbhit( void ) {
+   static const int STDIN = 0;
+   static bool initialized = false;
+
+   if (! initialized) {
+     // Use termios to turn off line buffering
+      struct termios term;
+      tcgetattr(STDIN, &term);
+      term.c_lflag &= ~ICANON;
+      tcsetattr(STDIN, TCSANOW, &term);
+      setbuf(stdin, NULL);
+      initialized = true;
+   }
+
+   int bytesWaiting;
+   ioctl(STDIN, FIONREAD, &bytesWaiting);
+   return bytesWaiting;
+}
+
+int _getch( void )
+{
+   return getchar( );
+}
+
+#endif
+
 int main( int argc, char** argv )
 {
    CalculateSecondCycles( );
    signal( SIGINT, IntHandler );
+
+   #ifndef _WIN32
+   signal( SIGPIPE, SIG_IGN );
+   #endif
 
    Cmd_InitArgs( argc, argv );
    isDedicated = Cmd_IsVarPresent( "-dedicated" );
@@ -138,6 +174,7 @@ int main( int argc, char** argv )
    Game_Init( );
 
    Cfg_Exec( "default.cfg" );
+   Con_ExecCommandLine( );
 
    Host_Init( );
    if( !isDedicated )
@@ -205,7 +242,9 @@ int main( int argc, char** argv )
          if( lastKey == '\x3' )
             shouldExit = TRUE;
 
+         #ifdef _WIN32
          putc( lastKey, stdout );
+         #endif
          Con_Process( );
       }
    }

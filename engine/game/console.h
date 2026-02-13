@@ -13,5 +13,6 @@ void Con_Process( void );
 void Con_Draw( void );
 void Con_Printf( const char* fmt, ... );
 void Con_Execute( const char* buf );
+void Con_ExecCommandLine( void );
 
 #endif

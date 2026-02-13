@@ -2,8 +2,8 @@
 #include <common/args.h>
 #include <common/cmd.h>
 
-static int ArgCount = 0;
-static char** ArgStrings = NULL;
+int      ArgCount = 0;
+char**   ArgStrings = NULL;
 
 void Cmd_InitArgs( int argc, char** argv )
 {
@@ -26,7 +26,7 @@ char* Cmd_GetStringArg( const char* name )
       ++i;
    }
    while( i < ArgCount );
-   
+
    return value;
 }
 
@@ -40,7 +40,7 @@ int Cmd_GetIntArg( const char* name )
       if( !BM_strcmp( name, ArgStrings[i] ) )
       {
          value = atoi( ArgStrings[i+1] );
-         break;         
+         break;
       }
       ++i;
    }
@@ -60,6 +60,6 @@ bool Cmd_IsVarPresent( const char* name )
       ++i;
    }
    while( i < ArgCount );
-   
+
    return FALSE;
 }

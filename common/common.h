@@ -23,6 +23,8 @@
 #define GAMENAME BM
 #define GAMEVERSION MAKE_VERSION(0, 1)
 
+#define FLOAT_EPSILON 0.04
+
 #define TYPEDEF_SIZE(type, size) typedef type##_t type##size##_t[size]
 
 typedef unsigned char   byte;
@@ -47,5 +49,9 @@ static void HexDump( void* ptr, uint size )
       ++n;
    }
 }
+
+#ifndef _WIN32
+#define Sleep(x) usleep(x * 1000)
+#endif
 
 #endif

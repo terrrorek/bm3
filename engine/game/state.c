@@ -12,7 +12,8 @@
 double   connectTime = 0.0;
 bool     gameLocal = FALSE;
 
-extern eobj_t* player;
+// extern eobj_t* player;
+eobj_t* player = 0;
 
 static void Game_Connect_f( const char* address )
 {
@@ -27,7 +28,7 @@ static void Game_Connect_f( const char* address )
 
    char*    sep = strchr( address, ':' );
    if( !sep )
-      port = 21371;
+      port = 37215;
    else
    {
       port = atoi( sep + 1 );
@@ -92,19 +93,23 @@ void Game_Init( void )
 
 void Game_Host( void )
 {
-   Net_Host( );
+   SNet_Host( );
 }
 
 void Game_EndHost( void )
 {
-   Net_EndHost( );
+   SNet_EndHost( );
 }
 
 void Game_Connect( const char* addr, uint16_t port )
 {
+   addr_t address = Net_MakeAddress( addr, port );
    gameLocal = FALSE;
-   if( Net_Connect( &gamesock, addr, port ) )
+   if( CNet_Connect( &address ))
+   {
+      Con_Printf( "connected.\n" );
       gameState = GS_GAME;
+   }
 }
 
 void Game_ConnectLocal( void )
@@ -112,12 +117,14 @@ void Game_ConnectLocal( void )
    gameLocal = TRUE;
    gameState = GS_GAME;
    player = Ent_Create( "player" );
+   BM_strncpy( player->data.name, playername, sizeof(playername) );
 }
 
 void Game_Exit( void )
 {
-   Net_Disconnect( &gamesock );
+   CNet_Disconnect( );
    Ent_DestroyAll( );
    player = 0;
    gameState = GS_MENU;
+   Con_Printf( "disconnected.\n" );
 }

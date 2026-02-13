@@ -1,6 +1,5 @@
 #!/bin/bash
-scons --float-math --debug-symbols
+scons --float-math --debug-symbols --no-optimize
 cd out
-echo $@
 ./bm $@
 cd ..

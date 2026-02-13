@@ -8,7 +8,7 @@
 
 #undef bool
 
-// User defined data
+// User defined data (also used for networking)
 typedef struct edata_s
 {
    bool        spawned;

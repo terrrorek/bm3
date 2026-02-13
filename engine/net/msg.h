@@ -9,10 +9,12 @@ typedef enum msg_type_e
    MSGT_DISCONNECT,
    MSGT_BROADCAST,
    MSGT_INFO,
+
+   MSGT_ENTITY,
 }
 msg_type_t;
 
-#define MAX_MSG_SIZE 512
+#define MAX_MSG_SIZE 256
 
 typedef struct msg_s
 {

@@ -1,0 +1,38 @@
+name: Build
+on:
+  push:
+    branches: ["v3"]
+  pull_request:
+    branches: ["v3"]
+
+jobs:
+  build-ubuntu:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - uses: abel0b/setup-premake@v2.4
+      with:
+        version: "5.0.0-beta2"
+    - name: configure
+      working-directory: ./build
+      run: premake5 gmake
+    - name: compile
+      working-directory: ./build
+      run: make
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - uses: abel0b/setup-premake@v2.4
+      with:
+        version: "5.0.0-beta8"
+    - name: Add msbuild to PATH
+      uses: microsoft/setup-msbuild@v2
+    - name: configure
+      working-directory: ./build
+      run: premake5 vs2022
+    - name: compile
+      working-directory: ./build
+      run: msbuild idk.sln

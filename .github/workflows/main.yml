@@ -14,6 +14,8 @@ jobs:
     - uses: abel0b/setup-premake@v2.4
       with:
         version: "5.0.0-beta2"
+    - name: download dependencies
+      run: apt update && apt install libsdl3-dev
     - name: configure
       working-directory: ./build
       run: premake5 gmake

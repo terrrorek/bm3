@@ -10,25 +10,27 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - uses: actions/checkout@v4
     - uses: abel0b/setup-premake@v2.4
       with:
         version: "5.0.0-beta8"
     - name: configure
-      working-directory: ../build
-      run: cd build && premake5 gmake
+      working-directory: ./build
+      run: premake5 gmake
     - name: compile
-      working-directory: ../build
+      working-directory: ./build
       run: make
   build-windows:
     runs-on: windows-latest
 
     steps:
+    - uses: actions/checkout@v4
     - uses: abel0b/setup-premake@v2.4
       with:
         version: "5.0.0-beta8"
     - name: configure
-      working-directory: ../build
-      run: ls && cd build && premake5 vs2022
+      working-directory: ./build
+      run: premake5 vs2022
     - name: compile
-      working-directory: ../build
+      working-directory: ./build
       run: msbuild idk.sln

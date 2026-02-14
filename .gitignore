@@ -1,0 +1,7 @@
+build/*
+!build/.keep
+!build/*.lua
+
+bin/*
+!bin/.keep
+!bin/data

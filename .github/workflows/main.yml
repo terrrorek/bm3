@@ -12,9 +12,9 @@ jobs:
     steps:
     - uses: abel0b/setup-premake@v2.4
       with:
-        version: "5.0.0-beta8"
+        version: "5.0.0-beta2"
     - name: configure
-      run: premake5 gmake
+      run: cd build && premake5 gmake
     - name: compile
       run: make
   build-windows:
@@ -25,6 +25,6 @@ jobs:
       with:
         version: "5.0.0-beta8"
     - name: configure
-      run: premake5 vs2022
+      run: cd build && premake5 vs2022
     - name: compile
       run: msbuild idk.sln

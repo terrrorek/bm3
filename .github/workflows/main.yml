@@ -15,7 +15,7 @@ jobs:
       with:
         version: "5.0.0-beta2"
     - name: download dependencies
-      run: apt update && apt install libsdl3-dev
+      run: sudo apt-get update && sudo apt-get install libsdl3-dev
     - name: configure
       working-directory: ./build
       run: premake5 gmake

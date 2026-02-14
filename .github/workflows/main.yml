@@ -14,10 +14,10 @@ jobs:
       with:
         version: "5.0.0-beta8"
     - name: configure
-      working-directory: ./build
+      working-directory: ../build
       run: cd build && premake5 gmake
     - name: compile
-      working-directory: ./build
+      working-directory: ../build
       run: make
   build-windows:
     runs-on: windows-latest
@@ -27,8 +27,8 @@ jobs:
       with:
         version: "5.0.0-beta8"
     - name: configure
-      working-directory: ./build
+      working-directory: ../build
       run: ls && cd build && premake5 vs2022
     - name: compile
-      working-directory: ./build
+      working-directory: ../build
       run: msbuild idk.sln

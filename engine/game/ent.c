@@ -253,7 +253,6 @@ uint Ent_Count( void )
    return count;
 }
 
-extern cvar_t eng_rate;
 double nowInterp = 0.0, lastInterp = 1.0;
 
 static void Ent_InterpolateTransform( eobj_t* ent, vec3* pos, vec3* rot, vec3* scale )
@@ -276,7 +275,7 @@ static void Ent_InterpolateTransform( eobj_t* ent, vec3* pos, vec3* rot, vec3* s
       ent->data.transform.scale,
       ent->interp, *scale );
 
-   ent->interp = (nowInterp - lastInterp) * eng_rate.number;
+   ent->interp = (nowInterp - lastInterp) * g_rate.number;
 }
 
 extern int conFont;
@@ -317,7 +316,7 @@ void Ent_Draw( void )
 
       if( strlen( obj->data.name ) > 1 )
       {
-         int   x = obj->data.transform.position[0], y = obj->data.transform.position[1] - 14;
+         int   x = obj->lastdata.transform.position[0], y = obj->lastdata.transform.position[1] - 14;
          char* ptr = obj->data.name;
 
          while( *ptr )

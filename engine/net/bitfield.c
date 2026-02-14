@@ -1,13 +1,5 @@
 #include <net/bitfield.h>
 
-bitbuffer_t Bit_FromMessage( msg_t* msg ) {
-   return (bitbuffer_t){
-      .buffer = &msg->data[0],
-      .offset = 0,
-      .size = MAX_MSG_SIZE
-   };
-}
-
 #define LENGTH_CHECK\
    if( buf->offset + sizeof(bitfield_t) + sizeof(value) >= buf->size ) return FALSE
 #define WRITE_FIELD(field)\

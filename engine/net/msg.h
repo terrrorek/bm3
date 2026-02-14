@@ -1,27 +1,35 @@
+
 #ifndef MSG_H
 #define MSG_H
 
 #include <common/common.h>
+#include <net/bitfield.h>
 
 typedef enum msg_type_e
 {
-   MSGT_CONNECT = 1,
-   MSGT_DISCONNECT,
-   MSGT_BROADCAST,
-   MSGT_INFO,
+   // cls - client to server
+   MSG_CLS_CONNECT = 1,
+   MSG_CLS_DISCONNECT,
 
-   MSGT_ENTITY,
+   // svc - server to client
+   MSG_SVC_DISCONNECT,
 }
 msg_type_t;
-
-#define MAX_MSG_SIZE 256
-
-typedef struct msg_s
+typedef struct msg_header_s
 {
-   byte        type;
-   uint32_t    hash;
-   byte        data[MAX_MSG_SIZE];
+   uint32_t    seq;
+   uint32_t    ackseq;
+   uint32_t    clid;
+   uint16_t    type;
+   uint8_t     ack;
+   uint8_t     __pad;
 }
-msg_t;
+msg_header_t;
+
+void Msg_Construct(
+   msg_header_t* header,
+   bitbuffer_t* bitbuf,
+   byte* buffer, size_t buflen
+);
 
 #endif

@@ -103,7 +103,7 @@ rend_imports_t rendExports = {
 
    .Rend_DrawPic = Rend_DrawPic,
    .Rend_DrawChar = Rend_DrawChar,
-   .Rend_DrawString = (void*) Stub,
+   .Rend_DrawString = Rend_DrawString,
 };
 
 EXPORT int Rend_RefInit( eng_exports_t* engine, rend_imports_t* imports )

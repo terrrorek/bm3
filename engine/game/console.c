@@ -11,7 +11,7 @@
 
 bool     conOpened = FALSE;
 
-uint     conBackground = 0, conFont = 0, colortest = 0;
+uint     conBackground = 0, conFont = 0;
 
 static input_t conInput = {
    .name = "console",
@@ -185,14 +185,11 @@ void Con_Printf( const char* fmt, ... )
 
 cvar_t  clear_f = {
    .name = "clear",
-   .flags = CVAR_FUNCTION
-   // .function = Con_Clear_f,
+   .flags = CVAR_FUNCTION,
 };
 cvar_t  exit_f = {
    .name = "exit",
-   .flags = CVAR_FUNCTION
-   // .function = Con_Exit_f,
-   // msvc doesn't like that
+   .flags = CVAR_FUNCTION,
 };
 cvar_t   dumpcv_f = {
    .name = "dumpcv",

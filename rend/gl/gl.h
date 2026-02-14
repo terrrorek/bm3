@@ -57,5 +57,6 @@ uint Rend_CreateTexture( char* name, pic_t* pic );
 void Rend_DestroyTexture( uint index );
 void Rend_DrawPic( uint pic, int x, int y, int h, int w );
 void Rend_DrawChar(uint pic, char ch, int x, int y, int w, int h);
+void Rend_DrawString( uint pic, int x, int y, int w, int h, const char* fmt, ... );
 
 #endif

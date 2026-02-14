@@ -14,8 +14,8 @@
 #include <game/console.h>
 #include <common/cvar.h>
 #include <game/state.h>
-#include <net/net.h>
 #include <game/cfg.h>
+#include <net/net.h>
 #include <net/bitfield.h>
 
 #include <signal.h>
@@ -36,15 +36,13 @@ double   nowTime = 0.0, deltaTime = 0.0, gameTime = 0.0;
 double   lastFrame = 0.0, lastUpdate = 0.0;
 uint64_t secondDur = 0;
 
-game_state_t   gameState = GS_MENU;
-
-cvar_t   eng_rate = {
-   .name = "eng_rate",
+cvar_t   g_rate = {
+   .name = "g_rate",
    .flags = CVAR_NUMBER,
    .number = 60
 };
-cvar_t   vid_fps = {
-   .name = "vid_fps",
+cvar_t   r_rate = {
+   .name = "r_rate",
    .flags = CVAR_NUMBER,
    .number = 60
 };
@@ -153,8 +151,8 @@ int main( int argc, char** argv )
 
    File_Init( );
 
-   CVar_Register( &eng_rate );
-   CVar_Register( &vid_fps );
+   CVar_Register( &g_rate );
+   CVar_Register( &r_rate );
 
    Game_SetupExports( );
    IN_InitMove( );
@@ -168,8 +166,8 @@ int main( int argc, char** argv )
       Vid_Init( );
    }
 
-   Con_Init( );
    Net_Init( );
+   Con_Init( );
    Ent_Init( );
    Game_Init( );
 
@@ -182,8 +180,7 @@ int main( int argc, char** argv )
    else
    {
       Game_Host( );
-      gameLocal = TRUE;
-      gameState = GS_GAME;
+      gameState = GS_INGAME;
    }
 
    while( !shouldExit )
@@ -195,16 +192,23 @@ int main( int argc, char** argv )
       if( !isDedicated && !isHeadless )
          Vid_Update( );
 
-      if( (nowTime - lastUpdate) >= (1.0 / eng_rate.number) )
+      if( (nowTime - lastUpdate) >= (1.0 / g_rate.number) )
       {
-         Host_Update( );
-         if( !isDedicated )
-            Client_Update( );
+         switch( gameState )
+         {
+         case GS_INGAME:
+            Host_Update( );
+            if( !isDedicated )
+               Client_Update( );
+            break;
+         default:
+            break;
+         }
 
          lastUpdate = nowTime;
       }
 
-      if( (nowTime - lastFrame) >= (1.0 / vid_fps.number) && (!isDedicated && !isHeadless) )
+      if( (nowTime - lastFrame) >= (1.0 / r_rate.number) && (!isDedicated && !isHeadless) )
       {
          // input
          IN_ProcessInput( );
@@ -217,18 +221,8 @@ int main( int argc, char** argv )
             lastInterp = lastUpdate;
          nowInterp = nowTime;
 
-         switch( gameState )
-         {
-         case GS_GAME:
-            Ent_Draw( );
-
-         case GS_MENU:
-            break;
-         }
-
          Con_Process( );
-         Con_Draw( );
-         Vid_Draw( );
+         Game_Draw( );
 
          lastFrame = nowTime;
       }
@@ -252,6 +246,7 @@ int main( int argc, char** argv )
    // Mem_Print( );
    Cmd_Printf( "Exiting...\n" );
 
+   Game_Exit( );
    Host_Quit( );
    if( !isDedicated )
    {

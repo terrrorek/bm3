@@ -3,7 +3,6 @@
 
 #include <common/common.h>
 #include <game/eobj.h>
-#include <net/msg.h>
 
 typedef struct bitbuffer_s
 {
@@ -32,9 +31,6 @@ typedef struct bitfield_s
 bitfield_t;
 
 #define MAX_BITFIELD_STR_LEN 128
-#define MAX_INACTIVITY_TIME 5.0f
-
-bitbuffer_t Bit_FromMessage( msg_t* msg );
 
 #define BIT_WRITE(_type, _name) \
    bool Bit_Write##_name( bitbuffer_t* buf, _type value )

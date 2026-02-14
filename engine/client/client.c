@@ -1,30 +1,24 @@
 
 #include <client/client.h>
+#include <net/msg.h>
 #include <common/cmd.h>
-#include <host/host.h>
-#include <game/state.h>
-#include <common/bmstring.h>
-#include <game/console.h>
-#include <net/net.h>
 
-extern uint64_t secondDur;
-
-bool     accepted = FALSE;
+bool        clientConnected = false;
+netchan_t   clientChan = {0};
 
 void Client_Init( void )
 {
-
+   Chan_OpenChannel( &clientChan.chan, 0 );
 }
 
 void Client_Update( void )
 {
-   if( gameState == GS_GAME )
-      Ent_Process( true );
-
-   CNet_Update();
+   if( !clientConnected )
+      return;
+   Net_ClientLoop( );
 }
 
 void Client_Quit( void )
 {
-   CNet_Disconnect( );
+   Chan_CloseChannel( &clientChan.chan );
 }

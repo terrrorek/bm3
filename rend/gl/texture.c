@@ -241,3 +241,48 @@ void Rend_DrawPic( uint pic, int x, int y, int w, int h )
 
    Rend_DrawPicImpl( tex, x, y, w, h, 0, 0, w, h );
 }
+
+void Rend_DrawString( uint pic, int x, int y, int w, int h, const char* fmt, ... )
+{
+   int            cx, cy, length;
+   char*          buffer, * ptr;
+   va_list        args;
+   int            chx, chy;
+   gltexture_t*   tex;
+
+   tex = Rend_GetTexture( pic );
+   if( !tex )
+      return;
+   if( !tex->pic )
+      return;
+   if( !(tex->pic->flags & PIC_FONT) )
+      return;
+
+   va_start( args, fmt );
+   length = vsnprintf( NULL, 0, fmt, args );
+   if( length <= 0 )
+   {
+      va_end( args );
+      return;
+   }
+
+   buffer = engFuncs->Mem_Alloc( length + 1 );
+   vsnprintf( buffer, length + 1, fmt, args );
+
+   va_end( args );
+
+   for( ptr = buffer, cx = 0, cy = 0; *ptr; cx += w + 1, ptr++ )
+   {
+      if( x + cx > state->width )
+      {
+         cy += h + 1;
+         cx = 0;
+      }
+
+      Rend_GetCharOffset( tex, *ptr, &chx, &chy );
+      if( chx > tex->pic->width || chy > tex->pic->height )
+         continue;
+
+      Rend_DrawPicImpl( tex, x + cx, y + cy, w, h, chx, chy, tex->pic->font.width, tex->pic->font.height );
+   }
+}

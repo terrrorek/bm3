@@ -1,130 +1,125 @@
 #include <game/state.h>
-#include <common/bmstring.h>
-#include <game/console.h>
-#include <common/cmd.h>
-#include <common/cvar.h>
 #include <game/eobj.h>
-#include <video/pic.h>
+#include <common/cvar.h>
+#include <game/console.h>
+#include <video/vid.h>
+#include <video/rend.h>
 #include <net/net.h>
 
-#include <SDL3/SDL.h>
+game_state_t   gameState = GS_MENU;
+bool           gameLocal = FALSE;
 
-double   connectTime = 0.0;
-bool     gameLocal = FALSE;
+eobj_t*  player = 0;
 
-// extern eobj_t* player;
-eobj_t* player = 0;
-
-static void Game_Connect_f( const char* address )
+static void Game_SwitchState_f( const char* state )
 {
-   if( address == NULL )
+   if( !state )
+      return;
+   if( strncmp( state, "menu", 4 ) == 0 )
    {
-      Con_Printf( "no address given.\n" );
+      gameLocal = FALSE;
+      gameState = GS_MENU;
+   }
+   else if( strncmp( state, "ingame", 6 ) == 0 )
+   {
+      gameLocal = TRUE;
+      gameState = GS_INGAME;
+   }
+}
+static cvar_t g_switchstate = {
+   .name = "g_switchstate",
+   .flags = CVAR_FUNCTION,
+};
+
+static void Game_Connect_f( const char* ip )
+{
+   if( !ip )
+   {
+      Con_Errorf( "g_connect: no ip given!" );
+      return;
+   }
+   if( strncmp( ip, "local", 5 ) == 0 )
+   {
+      gameLocal = TRUE;
+      gameState = GS_CONNECTING;
       return;
    }
 
-   int      port;
-   char     addr[32];
+   uint16_t port;
+   char* port_point = strchr( ip, ':' );
 
-   char*    sep = strchr( address, ':' );
-   if( !sep )
-      port = 37215;
+   if( !port_point )
+      port = NET_PORT;
    else
    {
-      port = atoi( sep + 1 );
-      *sep = 0;
+      port = strtoll( port_point+1, NULL, 10 );
+      *port_point = 0;
    }
 
-   BM_strcpy( addr, address );
-   Game_Connect( addr, port );
+   Game_Connect( ip, port );
 }
-static cvar_t _connect = {
-   .name = "connect",
+static cvar_t g_connect = {
+   .name = "g_connect",
    .flags = CVAR_FUNCTION,
-   .function = Game_Connect_f
-};
-
-static void Game_Disconnect_f( void )
-{
-   Game_Exit( );
-}
-static cvar_t _disconnect = {
-   .name = "disconnect",
-   .flags = CVAR_FUNCTION,
-   .function = (confunc_t) Game_Disconnect_f,
-};
-
-static void Game_State_f( void )
-{
-   const char* str;
-
-   switch( gameState )
-   {
-   case GS_MENU: str = "Menu"; break;
-   case GS_GAME: str = "Game"; break;
-   default: str = "?";
-   }
-
-   Con_Printf( "%s\n", str );
-}
-static cvar_t _game_state = {
-   .name = "game_state",
-   .flags = CVAR_FUNCTION,
-   .function = (confunc_t) Game_State_f,
-};
-
-static void Game_ConnectLocal_f( void )
-{
-   Game_ConnectLocal( );
-}
-static cvar_t _con_local = {
-   .name = "con_local",
-   .flags = CVAR_FUNCTION,
-   .function = (confunc_t) Game_ConnectLocal_f
 };
 
 void Game_Init( void )
 {
-   CVar_Register( &_connect );
-   CVar_Register( &_disconnect );
-   CVar_Register( &_con_local );
-   CVar_Register( &_game_state );
-}
-
-void Game_Host( void )
-{
-   SNet_Host( );
-}
-
-void Game_EndHost( void )
-{
-   SNet_EndHost( );
-}
-
-void Game_Connect( const char* addr, uint16_t port )
-{
-   addr_t address = Net_MakeAddress( addr, port );
-   gameLocal = FALSE;
-   if( CNet_Connect( &address ))
-   {
-      Con_Printf( "connected.\n" );
-      gameState = GS_GAME;
-   }
-}
-
-void Game_ConnectLocal( void )
-{
-   gameLocal = TRUE;
-   gameState = GS_GAME;
-   player = Ent_Create( "player" );
-   BM_strncpy( player->data.name, playername, sizeof(playername) );
+   g_switchstate.function = (confunc_t) Game_SwitchState_f;
+   CVar_Register( &g_switchstate );
+   g_connect.function = (confunc_t) Game_Connect_f;
+   CVar_Register( &g_connect );
 }
 
 void Game_Exit( void )
 {
-   CNet_Disconnect( );
-   Ent_DestroyAll( );
-   player = 0;
-   gameState = GS_MENU;
-   Con_Printf( "disconnected.\n" );
+
+}
+
+void Game_Host( void )
+{
+
+}
+
+void Game_EndHost( void )
+{
+
+}
+
+void Game_Draw( void )
+{
+   switch( gameState )
+   {
+   case GS_INGAME:
+      Ent_Draw( );
+      break;
+
+   case GS_CONNECTING:
+      rendImports.Rend_DrawPic( conBackground, 0, 0, vidState.width, vidState.height );
+      rendImports.Rend_DrawString(
+         conFont,
+         vidState.width/2 - (int)(7*6.5),
+         vidState.height/2,
+         7, 9, "connecting..."
+      );
+      Vid_Draw( );
+      return;
+
+   case GS_CONNECTED:
+   default:
+      break;
+   }
+
+   Con_Draw( );
+   Vid_Draw( );
+}
+
+void Game_Connect( const char* addr, uint16_t port )
+{
+   printf( "%s:%u\n", addr, port );
+}
+
+void Game_Disconnect( void )
+{
+
 }

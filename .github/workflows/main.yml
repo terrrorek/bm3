@@ -1,0 +1,30 @@
+name: Build
+on:
+  push:
+    branches: ["v3"]
+  pull_request:
+    branches: ["v3"]
+
+jobs:
+  build-ubuntu:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: abel0b/setup-premake@v2.4
+      with:
+        version: "5.0.0-beta8"
+    - name: configure
+      run: premake5 gmake
+    - name: compile
+      run: make
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+    - uses: abel0b/setup-premake@v2.4
+      with:
+        version: "5.0.0-beta8"
+    - name: configure
+      run: premake5 vs2022
+    - name: compile
+      run: msbuild idk.sln

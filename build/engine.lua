@@ -1,7 +1,7 @@
 project "bm"
    kind "ConsoleApp"
    language "C"
-   targetdir "../bin"
+   targetdir "../out"
 
    files { "../engine/**.c", "../engine/**.h" }
 

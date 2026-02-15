@@ -17,7 +17,7 @@ jobs:
     - name: download dependencies
       run: |
         sudo apt-get update
-        sudo apt-get search sdl3
+        sudo apt search sdl3
         sudo apt-get install -y libsdl3-dev
     - name: configure
       working-directory: ./build

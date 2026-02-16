@@ -3,7 +3,17 @@ project "bm"
    language "C"
    targetdir "../out"
 
-   files { "../engine/**.c", "../engine/**.h" }
+   files {
+      "../engine/**.c",    "../engine/**.h",
+      "../rend/gl/**.c",   "../rend/gl/**.h",
+      "../rend/soft/**.c", "../rend/soft/**.h",
+   }
+   includedirs {
+      "../", "../engine",
+      "../3rdparty/cglm",
+      "../3rdparty/glad3.3",
+      "../3rdparty/SDL3-3.2.10/include",
+   }
 
    if os.host() == "windows" then
       filter { "system:windows" }
@@ -17,7 +27,7 @@ project "bm"
          end
          libdirs { "../3rdparty/SDL3-3.2.10/lib/" .. arch_str }
       filter {}
-      os.copyfile( "../3rdparty/SDL3-3.2.10/lib/" .. arch_str .. "/SDL3.dll", "../bin/SDL3.dll" )
+      os.copyfile( "../3rdparty/SDL3-3.2.10/lib/" .. arch_str .. "/SDL3.dll", "../out/SDL3.dll" )
    end
 
    links { "SDL3" }

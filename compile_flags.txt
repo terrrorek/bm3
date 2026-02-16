@@ -1,0 +1,10 @@
+-std=c99
+-Wall
+-Wextra
+-pedantic
+
+-I.
+-Iengine
+-I3rdparty/cglm
+-I3rdparty/glad3.3
+-I3rdparty/SDL3-3.2.10/include

@@ -2,6 +2,6 @@ build/*
 !build/.keep
 !build/*.lua
 
-bin/*
-!bin/.keep
-!bin/data
+out/*
+!out/.keep
+!out/data

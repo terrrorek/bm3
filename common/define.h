@@ -15,6 +15,9 @@ typedef uint8_t   byte;
 #ifndef __cplusplus
    typedef  byte bool;
    enum     { false, true };
+#else
+   typedef  byte __bool;
+   #define  bool __byte
 #endif
 
 #define WIPE(x)\

@@ -19,7 +19,7 @@ void Vid_Init( void )
    if(!( vid.window = SDL_CreateWindow( "bm", vid.width, vid.height, SDL_WINDOW_OPENGL ) ))
       Cmd_Errorf( "failed to create SDL window (%s)", SDL_GetError() );
 
-   Rend_Init( &vid.rend, VID_REND_GL, vid.window );
+   Rend_Init( &vid.rend, VID_REND_GL, &vid );
 }
 
 void Vid_Quit( void )

@@ -4,7 +4,13 @@
 #include <common/define.h>
 #include <stdlib.h>
 
-#define Mem_Alloc(__size__)   calloc( 1, __size__ )
-#define Mem_Free(__ptr__)     free( __ptr__ )
+static inline void* Mem_Alloc( size_t size )
+{
+   return calloc( 1, size );
+}
+static inline void  Mem_Free( void* ptr )
+{
+   free( ptr );
+}
 
 #endif

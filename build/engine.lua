@@ -4,9 +4,7 @@ project "bm"
    targetdir "../out"
 
    files {
-      "../engine/**.c",    "../engine/**.h",
-      "../rend/gl/**.c",   "../rend/gl/**.h",
-      "../rend/soft/**.c", "../rend/soft/**.h",
+      "../engine/**.c", "../engine/**.h",
    }
    includedirs {
       "../", "../engine",
@@ -14,6 +12,7 @@ project "bm"
       "../3rdparty/glad3.3",
       "../3rdparty/SDL3-3.2.10/include",
    }
+   defines { "_CRT_SECURE_NO_WARNINGS" }
 
    if os.host() == "windows" then
       filter { "system:windows" }

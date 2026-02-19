@@ -3,7 +3,14 @@
 
 #include <SDL3/SDL.h>
 #include <common/define.h>
+#include <common/dll.h>
 #include <cglm/cglm.h>
+
+struct vidstate_s;
+struct vid_rendstate_s;
+
+struct vid_sprite_s;
+struct vid_spriteatlas_s;
 
 typedef struct vid_vertex_s
 {
@@ -19,45 +26,32 @@ typedef enum vid_rend_e
 }
 vid_rend_t;
 
-typedef struct vid_rendsoft_s
+typedef struct vid_rendfuncs_s
 {
-   SDL_Surface*   surface;
+   void  (*Init)( struct vid_rendstate_s* );
+   void  (*Quit)( struct vid_rendstate_s* );
+   void  (*Update)( struct vid_rendstate_s* );
+
+   bool  (*LoadSprite)( struct vid_sprite_s*, struct vid_spriteatlas_s*, void* );
+   bool  (*FreeSprite)( struct vid_sprite_s* );
 }
-vid_rendsoft_t;
-typedef struct vid_rendgl_s
-{
-   SDL_GLContext  gl_context;
-   uint           quad_vao;
-   uint           quad_vbuf, quad_ibuf;
-   uint           base_pipeline;
-}
-vid_rendgl_t;
+vid_rendfuncs_t;
 
 typedef struct vid_rendstate_s
 {
-   SDL_Window* window;
-   vid_rend_t  backend;
-   union
-   {
-      vid_rendsoft_t soft;
-      vid_rendgl_t   gl;
-   }
-   data;
+   vid_rend_t              backend;
+   vid_rendfuncs_t         func;
+   void*                   dll;
+
+   struct vidstate_s*      vid;
+   struct vid_renddata_s*  data;
 }
 vid_rendstate_t;
 
-void Rend_Init( vid_rendstate_t* rend, vid_rend_t backend, SDL_Window* window );
+typedef void (*vid_rendload_t)( dll_export_t*, vid_rendfuncs_t* );
+
+void Rend_Init( vid_rendstate_t* rend, vid_rend_t backend, struct vidstate_s* vid );
 void Rend_Quit( vid_rendstate_t* rend );
 void Rend_Update( vid_rendstate_t* rend );
-
-/* gl */
-void RendGL_Init( vid_rendstate_t* rend, SDL_Window* window );
-void RendGL_Quit( vid_rendstate_t* rend );
-void RendGL_Update( vid_rendstate_t* rend );
-
-/* soft */
-void RendSoft_Init( vid_rendstate_t* rend, SDL_Window* window );
-void RendSoft_Quit( vid_rendstate_t* rend );
-void RendSoft_Update( vid_rendstate_t* rend );
 
 #endif

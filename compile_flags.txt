@@ -8,3 +8,5 @@
 -I3rdparty/cglm
 -I3rdparty/glad3.3
 -I3rdparty/SDL3-3.2.10/include
+
+-D_CRT_SECURE_NO_WARNINGS

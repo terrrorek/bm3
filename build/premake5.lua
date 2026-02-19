@@ -3,3 +3,4 @@ workspace "idk"
    architecture "x64"
 
 require "engine"
+require "renderers"

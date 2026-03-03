@@ -1,8 +1,9 @@
 #include <video/sprite.h>
+#include <video/rend.h>
+#include <video/vid.h>
 #include <common/cmd.h>
 
 vid_sprite_t      sprites[VID_MAX_SPRITES] = {0};
-vid_spriteatlas_t spriteatlases[VID_MAX_SPRITEATLAS] = {0};
 
 static vid_sprite_t* Vid_AllocSprite( void )
 {
@@ -23,8 +24,6 @@ bool Vid_LoadSprite(
 )
 {
    vid_sprite_t*  sprite = Vid_AllocSprite( );
-   bool           fit = false;
-   uint           i;
 
    if( !sprite )
       Cmd_Errorf( "failed to allocate sprite (no space left)\n" );
@@ -33,21 +32,16 @@ bool Vid_LoadSprite(
    sprite->width = width;
    sprite->height = height;
 
-   for( i = 0; i < VID_MAX_SPRITEATLAS; i++ )
-   {
-      if( SpriteAtlas_WillSpriteFit( &spriteatlases[i], sprite ) )
-      {
-         fit = true;
-         break;
-      }
-   }
-
-   if( !fit )
+   if( !vid.rend.func.LoadSprite( &vid.rend, sprite, data ) )
    {
       WIPE( *sprite );
+      if( _sprite )
+         *_sprite = NULL;
       return false;
    }
 
+   if( _sprite )
+      *_sprite = sprite;
    return true;
 }
 
@@ -59,7 +53,8 @@ bool Vid_LoadFileSprite( const char* path, vid_sprite_t** _sprite )
 
 void Vid_FreeSprite( vid_sprite_t* sprite )
 {
-
+   vid.rend.func.FreeSprite( &vid.rend, sprite );
+   WIPE( *sprite );
 }
 
 vid_sprite_t* Vid_FindSprite( const char* name )

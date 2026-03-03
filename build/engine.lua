@@ -29,7 +29,7 @@ project "bm"
       os.copyfile( "../3rdparty/SDL3-3.2.10/lib/" .. arch_str .. "/SDL3.dll", "../out/SDL3.dll" )
    end
 
-   links { "SDL3" }
+   links { "bmvm", "SDL3" }
 
    filter { "configurations:Debug" }
       defines { "DEBUG" }

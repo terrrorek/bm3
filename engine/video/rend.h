@@ -8,9 +8,7 @@
 
 struct vidstate_s;
 struct vid_rendstate_s;
-
 struct vid_sprite_s;
-struct vid_spriteatlas_s;
 
 typedef struct vid_vertex_s
 {
@@ -18,6 +16,14 @@ typedef struct vid_vertex_s
    vec2 uv;
 }
 vid_vertex_t;
+
+typedef struct vid_transform_s
+{
+   vec3  position;
+   vec3  rotation;
+   vec3  scale;
+}
+vid_transform_t;
 
 typedef enum vid_rend_e
 {
@@ -32,8 +38,9 @@ typedef struct vid_rendfuncs_s
    void  (*Quit)( struct vid_rendstate_s* );
    void  (*Update)( struct vid_rendstate_s* );
 
-   bool  (*LoadSprite)( struct vid_sprite_s*, struct vid_spriteatlas_s*, void* );
-   bool  (*FreeSprite)( struct vid_sprite_s* );
+   bool  (*LoadSprite)( struct vid_rendstate_s*, struct vid_sprite_s*, void* );
+   void  (*FreeSprite)( struct vid_rendstate_s*, struct vid_sprite_s* );
+   void  (*DrawSprite)( struct vid_rendstate_s*, struct vid_sprite_s*, vid_transform_t* );
 }
 vid_rendfuncs_t;
 

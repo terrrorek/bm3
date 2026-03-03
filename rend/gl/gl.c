@@ -1,4 +1,7 @@
 #include <rend/gl/gl.h>
+#include <rend/gl/gl_sprite.h>
+#include <rend/gl/gl_draw.h>
+
 #include <common/cmd.h>
 #include <cglm/cglm.h>
 
@@ -30,7 +33,8 @@ static const char* RendGL_BaseVertexShader =
 "out vec2 o_UV;\n"
 "void main()\n"
 "{\n"
-"   gl_Position = proj * view * model * vec4( v_Position, 1.0 );\n"
+"   gl_Position = proj * view * model * vec4( \n"
+"      vec3(v_Position.x + 1, v_Position.y + 1, v_Position.z), 1.0 );\n"
 "   o_UV = v_UV;\n"
 "}\0"
 ;
@@ -38,9 +42,10 @@ static const char* RendGL_BaseFragmentShader =
 "#version 330 core\n"
 "in vec2 o_UV;\n"
 "layout( location = 0 ) out vec4 v_Color;\n"
+"uniform sampler2D spr_texture;\n"
 "void main()\n"
 "{\n"
-"   v_Color = vec4( o_UV, 0.0, 1.0 );\n"
+"   v_Color = texture( spr_texture, o_UV );\n"
 "}\0"
 ;
 
@@ -118,7 +123,7 @@ static void RendGL_CreateQuadBuffers( vid_rendstate_t* rend )
    glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
 }
 
-void RendGL_Init( vid_rendstate_t* rend )
+static void RendGL_Init( vid_rendstate_t* rend )
 {
    rend->data = dll.Mem_Alloc( sizeof(gl_renddata_t) );
 
@@ -133,11 +138,13 @@ void RendGL_Init( vid_rendstate_t* rend )
    glClearColor( .1f, .1f, .1f, 1.f );
    glClearDepth( 1.f );
 
+   glm_ortho( 0.f, rend->vid->width, rend->vid->height, 0.f, -1.f, 1.f, proj_matrix );
+
    RendGL_CreateQuadBuffers( rend );
    RendGL_CreateBasePipeline( rend );
 }
 
-void RendGL_Quit( vid_rendstate_t* rend )
+static void RendGL_Quit( vid_rendstate_t* rend )
 {
    SDL_GL_DestroyContext( rend->data->gl_context );
    rend->data->gl_context = NULL;
@@ -146,20 +153,76 @@ void RendGL_Quit( vid_rendstate_t* rend )
    rend->data = NULL;
 }
 
-void RendGL_Update( vid_rendstate_t* rend )
+static void RendGL_Update( vid_rendstate_t* rend )
 {
    glClear( GL_COLOR_BUFFER_BIT );
-   glBindVertexArray( rend->data->quad_vao );
+
    glUseProgram( rend->data->base_pipeline.handle );
-   glUniformMatrix4fv( rend->data->base_pipeline.model_loc,
-      1, false, (float*) model_matrix );
    glUniformMatrix4fv( rend->data->base_pipeline.view_loc,
       1, false, (float*) view_matrix );
    glUniformMatrix4fv( rend->data->base_pipeline.proj_loc,
       1, false, (float*) proj_matrix );
-   glDrawElementsInstanced( GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL, 1 );
+
+   GL_ProcessDrawCalls( rend->data );
+   GL_ClearDrawCalls( );
 
    SDL_GL_SwapWindow( rend->vid->window );
+}
+
+static bool RendGL_LoadSprite( vid_rendstate_t* rend, vid_sprite_t* sprite, void* data )
+{
+   gl_sprite_t*   glspr;
+
+   (void) rend;
+   if(( glspr = GL_FindSprite(sprite->name) ))
+   {
+      sprite->data = (void*) glspr;
+      return true;
+   }
+
+   glspr = GL_AllocSprite();
+   if( !glspr )
+      return false;
+
+   GL_LoadSprite( glspr, sprite, data );
+   return true;
+}
+
+static void RendGL_FreeSprite( vid_rendstate_t* rend, vid_sprite_t* sprite )
+{
+   gl_sprite_t*   glspr;
+
+   (void) rend;
+   if( !sprite->data )
+   {
+      if(!( glspr = GL_FindSprite(sprite->name) ))
+         return;
+   }
+   else
+      glspr = (void*) sprite->data;
+
+   GL_FreeSprite( glspr );
+   sprite->data = NULL;
+   return;
+}
+
+static void RendGL_DrawSprite( vid_rendstate_t* rend, vid_sprite_t* sprite, vid_transform_t* transform )
+{
+   gl_sprite_t*   glspr;
+   gl_drawcall_t  call;
+
+   if( !sprite->data )
+   {
+      if(!( glspr = GL_FindSprite(sprite->name) ))
+         glspr = GL_FindSprite("checker");
+   }
+   else
+      glspr = (void*) sprite->data;
+
+   call.sprite = glspr;
+   call.pp = &rend->data->base_pipeline;
+   call.transform = *transform;
+   GL_PushDrawCall( &call );
 }
 
 DLL_EXPORT void Rend_Load( dll_export_t* _dll, vid_rendfuncs_t* func )
@@ -169,5 +232,9 @@ DLL_EXPORT void Rend_Load( dll_export_t* _dll, vid_rendfuncs_t* func )
       .Init = RendGL_Init,
       .Quit = RendGL_Quit,
       .Update = RendGL_Update,
+
+      .LoadSprite = RendGL_LoadSprite,
+      .FreeSprite = RendGL_FreeSprite,
+      .DrawSprite = RendGL_DrawSprite,
    };
 }

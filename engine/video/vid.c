@@ -46,3 +46,10 @@ void Vid_Update( void )
 
    Rend_Update( &vid.rend );
 }
+
+void Vid_DrawSprite( struct vid_sprite_s* sprite, vid_transform_t* transform )
+{
+   if( !sprite )
+      return;
+   vid.rend.func.DrawSprite( &vid.rend, sprite, transform );
+}

@@ -2,11 +2,18 @@
 #include <video/vid.h>
 #include <common/dll.h>
 #include <common/cmd.h>
+#include <video/sprite.h>
 
 static const char* Rend_DLLNames[] =
 {
    "soft",
    "gl",
+};
+
+static const uint32_t Rend_CheckerTexture[] =
+{
+   0xffff00ff, 0xff000000,
+   0xff000000, 0xffff00ff
 };
 
 void Rend_Init( vid_rendstate_t* rend, vid_rend_t backend, struct vidstate_s* vid )
@@ -31,6 +38,8 @@ void Rend_Init( vid_rendstate_t* rend, vid_rend_t backend, struct vidstate_s* vi
    DLL_FillInExports( &dll );
    load_func( &dll, &vid->rend.func );
    rend->func.Init( rend );
+
+   Vid_LoadSprite( "checker", 2, 2, (void*) Rend_CheckerTexture, NULL );
 }
 
 void Rend_Quit( vid_rendstate_t* rend )

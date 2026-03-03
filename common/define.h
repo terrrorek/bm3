@@ -9,6 +9,8 @@
 #include <stddef.h>
 #include <string.h>
 
+#include <common/arch.h>
+
 typedef unsigned  uint;
 typedef uint8_t   byte;
 

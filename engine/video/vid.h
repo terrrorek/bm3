@@ -19,4 +19,6 @@ void Vid_Init( void );
 void Vid_Quit( void );
 void Vid_Update( void );
 
+void Vid_DrawSprite( struct vid_sprite_s* sprite, vid_transform_t* transform );
+
 #endif

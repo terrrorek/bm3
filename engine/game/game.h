@@ -16,8 +16,9 @@ game_state_t;
 
 extern game_state_t game;
 
-void Game_Init( bool vm );
-void Game_Quit( void );
-void Game_Update( void );
+void  Game_Init( bool vm );
+void  Game_Quit( void );
+void  Game_Update( void );
+void* Game_GetSymbol( const char* name );
 
 #endif

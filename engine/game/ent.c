@@ -4,9 +4,19 @@
 
 econ_t game_entities[ENT_MAX_ENTITIES] = {0};
 
+typedef eclass_t* (*geteclassfunc_t)(void);
 static bool Ent_AcquireClass( const char* classname, eclass_t* eclass )
 {
-   return false;
+   char  buffer[128];
+   void* sym;
+
+   snprintf( buffer, sizeof(buffer), "__%s_eclass\n", classname );
+   sym = Game_GetSymbol( buffer );
+   if( !sym )
+      return false;
+
+   *eclass = *((geteclassfunc_t) sym)();
+   return true;
 }
 
 econ_t* Ent_Allocate( const char* classname )

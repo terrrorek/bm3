@@ -2,6 +2,7 @@
 #include <video/vid.h>
 #include <video/sprite.h>
 #include <game/game.h>
+#include <game/ent.h>
 
 bool running = true;
 
@@ -11,6 +12,8 @@ int main( void )
 
    Vid_Init( );
    Game_Init( false );
+
+   Ent_Allocate( "player" );
 
    while( running )
    {

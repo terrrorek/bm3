@@ -16,10 +16,12 @@
 #endif
 
 struct vidstate_s;
+struct gamestate_s;
 
 typedef struct dll_export_s
 {
    struct vidstate_s*   vidstate;
+   struct gamestate_s*  gamestate;
 
    // cmd
    void     (*Cmd_Printf)( const char* fmt, ... );

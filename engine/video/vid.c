@@ -1,7 +1,10 @@
 #include <video/vid.h>
 #include <common/cmd.h>
+#include <common/event.h>
 
 vidstate_t vid = {0};
+cvar_t     vid_rate = {"vid_rate", CVARK_INTEGER, 0, false, {.integer = 60}, 0, 0};
+double     last_render = 0.0, render_time = 0.0;
 
 void Vid_Init( void )
 {
@@ -20,6 +23,8 @@ void Vid_Init( void )
       Cmd_Errorf( "failed to create SDL window (%s)", SDL_GetError() );
 
    Rend_Init( &vid.rend, VID_REND_GL, &vid );
+
+   CVar_Register( &vid_rate );
 }
 
 void Vid_Quit( void )
@@ -29,16 +34,25 @@ void Vid_Quit( void )
    WIPE( vid );
 }
 
+static void Vid_DrawEntities( void )
+{
+
+}
+
 void Vid_Update( void )
 {
-   SDL_Event event;
+   SDL_Event   event;
+   event_t     ev;
+
+   ev.kind = EVENT_QUIT;
+   ev.data.quit.reason = "SDL_QUIT";
 
    while( SDL_PollEvent(&event) )
    {
       switch( event.type )
       {
       case SDL_EVENT_QUIT:
-         running = false;
+         Event_Push( &ev );
          break;
       default: break;
       }

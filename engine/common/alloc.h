@@ -12,5 +12,9 @@ static inline void  Mem_Free( void* ptr )
 {
    free( ptr );
 }
+static inline void* Mem_Realloc( void* ptr, size_t size )
+{
+   return realloc( ptr, size );
+}
 
 #endif

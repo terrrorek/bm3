@@ -3,6 +3,7 @@
 
 #include <SDL3/SDL.h>
 #include <common/define.h>
+#include <common/cvar.h>
 #include <video/rend.h>
 
 typedef struct vidstate_s
@@ -14,6 +15,8 @@ typedef struct vidstate_s
 vidstate_t;
 
 extern vidstate_t vid;
+extern cvar_t     vid_rate;
+extern double     last_render, render_time;
 
 void Vid_Init( void );
 void Vid_Quit( void );

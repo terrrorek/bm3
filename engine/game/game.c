@@ -1,8 +1,11 @@
 #include <game/game.h>
 #include <common/dll.h>
 #include <common/cmd.h>
+#include <game/ent.h>
 
-game_state_t game = {0};
+gamestate_t    game = {0};
+cvar_t         game_rate = {"game_rate", CVARK_INTEGER, 0, false, {.integer = 40}, 0, 0};
+double         last_update = 0.0, update_time = 0.0;
 
 typedef void (*gamevminit_t)( dll_export_t* );
 typedef void (*gamevmquit_t)( void );
@@ -30,6 +33,8 @@ void Game_Init( bool vm )
    }
    else
       ; /* TODO: vm */
+
+   CVar_Register( &game_rate );
 }
 
 void Game_Quit( void )
@@ -50,15 +55,25 @@ void Game_Quit( void )
    WIPE( game );
 }
 
-void Game_Update( void )
-{
-
-}
-
 void* Game_GetSymbol( const char* name )
 {
    if( !game.vm )
       return DLL_Symbol( game.handle.dll, name );
    else
       return NULL; /* TODO: vm */
+}
+
+void Game_UpdateSim( void )
+{
+   uint32_t i;
+   econ_t*  e;
+
+   for( i = 0; i < farthest_entity+1; i++ )
+   {
+      e = &game_entities[0];
+      if( !e->classname[0] || e->frozen )
+         continue;
+
+      Ent_Update( e );
+   }
 }

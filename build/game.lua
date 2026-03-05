@@ -11,6 +11,7 @@ project "game"
 
    files {
       "../game/**.c", "../game/**.h",
+      "../cgame/**.c", "../cgame/**.h",
    }
    includedirs {
       "../", "../engine", "../game",

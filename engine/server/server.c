@@ -1,25 +1,49 @@
 #include <server/server.h>
+#include <common/cmd.h>
+#include <common/event.h>
 #include <game/game.h>
 
-netchan_t   sv_netchan;
-cvar_t      dedicated = {"dedicated", CVARK_INTEGER, 0, false, {.integer = 0}, 0, NULL};
-uint        sv_gametick = 0;
+cvar_t            dedicated = {"dedicated", CVARK_INTEGER, 0, false, {.integer = 0}, 0, NULL};
+
+server_state_t    sv_state;
+uint              sv_gametick = 0;
 
 void SV_Init( void )
 {
-   byte addr[4] = {0};
-   Netchan_Init( &sv_netchan, NETCHAN_NET, addr, NET_DEFAULT_PORT );
+   WIPE( sv_state );
 }
 
 void SV_Quit( void )
 {
-   Netchan_Quit( &sv_netchan );
 }
 
 void SV_Update( void )
 {
-   if( game.type != GAME_CONNECTED )
+   event_t ev;
+
+   if( !sv_state.running )
       return;
 
+   do
+   {
+      Event_PopKind( EVENT_SV_PACKET, &ev );
+      if( ev.kind != EVENT_SV_PACKET )
+         break;
+      switch( ev.data.packet.sock )
+      {
+      case SOCK_DATA_CLIENT:
+         SV_DataPacketUpdate( ev.data.packet.buffer, &ev.data.packet.addr );
+         break;
+      case SOCK_MSG_CLIENT:
+         SV_MsgPacketUpdate( ev.data.packet.buffer, &ev.data.packet.addr );
+         break;
+      default: break;
+      }
+   }
+   while( 1 );
+
    Game_UpdateSim( );
+   SV_PacketFrame( );
+
+   ++sv_gametick;
 }

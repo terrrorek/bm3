@@ -2,14 +2,16 @@
 #define COMMON_EVENT_H
 
 #include <common/define.h>
+#include <net/net.h>
 
 #define MAX_EVENT_STACK 1024
 
 typedef enum event_kind_e
 {
-   EVENT_DUMMY    = 0x0,
-   EVENT_QUIT     = 0x1,
-   EVENT_COMMAND  = 0x2
+   EVENT_DUMMY       = 0x0,
+   EVENT_QUIT        = 0x1,
+   EVENT_CL_PACKET   = 0x2,
+   EVENT_SV_PACKET   = 0x3,
 }
 event_kind_t;
 typedef struct event_s
@@ -23,8 +25,10 @@ typedef struct event_s
       } quit;
       struct
       {
-         byte _;
-      } command;
+         netsock_t   sock;
+         netaddr_t   addr;
+         byte        buffer[768];
+      } packet;
    }
    data;
 }

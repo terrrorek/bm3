@@ -8,9 +8,10 @@
 
 typedef struct vidstate_s
 {
-   SDL_Window*       window;
-   uint16_t          width, height;
-   vid_rendstate_t   rend;
+   SDL_Window*          window;
+   uint16_t             width, height;
+   vid_rendstate_t      rend;
+   struct vid_sprite_s* checker;
 }
 vidstate_t;
 

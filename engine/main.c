@@ -3,6 +3,7 @@
 #include <game/ent.h>
 #include <common/event.h>
 #include <common/cmd.h>
+#include <net/net.h>
 #include <game/game.h>
 #include <server/server.h>
 #include <client/client.h>
@@ -19,17 +20,24 @@ int main( int argc, char** argv )
 
    Cmd_Args( argc, argv );
 
-   Vid_Init( );
+   Net_Init( );
    Game_Init( false );
-   SV_Init( );
+   Vid_Init( );
 
-   game.con = GAMECON_LOOPBACK;
-   game.type = GAME_CONNECTED;
+   SV_Init( );
+   if( !dedicated.data.integer )
+      CL_Init( );
+
+   sv_state.running = true;
+
+   CL_Connect( (netaddr_t){0x0100007f, NET_DEFAULT_PORT} );
 
    while( running )
    {
       event_t  ev;
       now_time = SDL_GetTicks() / 1000.0;
+
+      Net_Update( );
 
       if( now_time > (last_update + (1. / game_rate.data.integer)) )
       {
@@ -55,7 +63,13 @@ int main( int argc, char** argv )
       }
    }
 
-   Game_Quit( );
+   if( !dedicated.data.integer )
+      CL_Quit( );
+   SV_Quit( );
+
    Vid_Quit( );
+   Game_Quit( );
+   Net_Quit( );
+
    return 0;
 }

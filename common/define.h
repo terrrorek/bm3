@@ -14,6 +14,7 @@
 typedef unsigned  uint;
 typedef uint8_t   byte;
 
+#undef bool
 #ifndef __cplusplus
    typedef  byte bool;
    enum     { false, true };

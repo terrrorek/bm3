@@ -1,10 +1,13 @@
 #include <video/vid.h>
+#include <video/sprite.h>
 #include <common/cmd.h>
 #include <common/event.h>
+#include <game/ent.h>
 
 vidstate_t vid = {0};
 cvar_t     vid_rate = {"vid_rate", CVARK_INTEGER, 0, false, {.integer = 60}, 0, 0};
 double     last_render = 0.0, render_time = 0.0;
+
 
 void Vid_Init( void )
 {
@@ -23,6 +26,7 @@ void Vid_Init( void )
       Cmd_Errorf( "failed to create SDL window (%s)", SDL_GetError() );
 
    Rend_Init( &vid.rend, VID_REND_GL, &vid );
+   vid.checker = Vid_FindSprite( "checker" );
 
    CVar_Register( &vid_rate );
 }
@@ -36,7 +40,15 @@ void Vid_Quit( void )
 
 static void Vid_DrawEntities( void )
 {
+   for( int i = 0; i < ENT_MAX_ENTITIES; i++ )
+   {
+      econ_t*           ent = &cl_entities[i];
+      vid_transform_t   transform;
 
+      transform.position[0] = ent->frames[0].transform.position[0];
+      transform.position[1] = ent->frames[0].transform.position[1];
+      Vid_DrawSprite( vid.checker, &transform );
+   }
 }
 
 void Vid_Update( void )
@@ -58,6 +70,7 @@ void Vid_Update( void )
       }
    }
 
+   Vid_DrawEntities( );
    Rend_Update( &vid.rend );
 }
 

@@ -30,6 +30,9 @@ project "bm"
    end
 
    links { "bmvm", "SDL3" }
+   filter { "system:windows" }
+      links { "ws2_32" }
+   filter {}
 
    filter { "configurations:Debug" }
       defines { "DEBUG" }

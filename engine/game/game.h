@@ -6,21 +6,6 @@
 #include <game/player.h>
 #include <bmvm/vm/bmvm.h>
 
-typedef enum gametype_e
-{
-   GAME_MENU = 0,
-   GAME_CONNECTING = 1,
-   GAME_CONNECTED = 2
-}
-gametype_t;
-
-typedef enum gamecon_e
-{
-   GAMECON_LOOPBACK = 0,
-   GAMECON_NET = 1,
-}
-gamecon_t;
-
 typedef struct gamestate_s
 {
    bool  vm;
@@ -31,10 +16,6 @@ typedef struct gamestate_s
       bmvm_state_t   vm;
    }
    handle;
-
-   gametype_t  type;
-   gamecon_t   con;
-   player_t    players[GAME_MAX_PLAYERS];
 }
 gamestate_t;
 
